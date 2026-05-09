@@ -1,0 +1,10 @@
+# Funding configuration for Timechain Grid.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+#
+# Primary donation channel is Lightning, listed at /donate on the
+# live site. GitHub Sponsors will be added once a Sponsors profile
+# is set up. OpenSats application planned post-launch.
+
+github: # set to GitHub username/org once a Sponsors profile is configured
+custom:
+  - 'https://timechaingrid.com/donate'

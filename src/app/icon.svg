@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
+  <rect x="2" y="2" width="96" height="96" rx="12" fill="#08080c"/>
+  <rect x="3" y="3" width="94" height="94" rx="11" fill="none" stroke="#c28840" stroke-width="2.5" opacity="0.9"/>
+  <defs>
+    <radialGradient id="g" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="rgba(255, 215, 102, 0.55)"/>
+      <stop offset="60%" stop-color="rgba(193, 136, 64, 0.18)"/>
+      <stop offset="100%" stop-color="rgba(0, 0, 0, 0)"/>
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="44" fill="url(#g)"/>
+  <!-- 5x5 grid; outermost ring (Chebyshev=2) at lowest opacity, then ring 1, then center cell brightest -->
+  <g>
+    <!-- row 0 ring 2 -->
+    <rect x="10" y="10" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="28" y="10" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="46" y="10" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="64" y="10" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="82" y="10" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <!-- row 1 -->
+    <rect x="10" y="28" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="28" y="28" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="46" y="28" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="64" y="28" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="82" y="28" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <!-- row 2 (middle: center cell) -->
+    <rect x="10" y="46" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="28" y="46" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="46" y="46" width="14" height="14" rx="2" fill="rgba(248,213,104,0.95)" opacity="1"/>
+    <rect x="64" y="46" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="82" y="46" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <!-- row 3 -->
+    <rect x="10" y="64" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="28" y="64" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="46" y="64" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="64" y="64" width="14" height="14" rx="2" fill="rgba(193,136,64,0.78)" opacity="0.85"/>
+    <rect x="82" y="64" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <!-- row 4 ring 2 -->
+    <rect x="10" y="82" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="28" y="82" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="46" y="82" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="64" y="82" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+    <rect x="82" y="82" width="14" height="14" rx="2" fill="rgba(140,95,40,0.55)" opacity="0.6"/>
+  </g>
+  <rect x="44" y="44" width="14" height="14" rx="2" fill="none" stroke="rgba(255, 235, 150, 0.95)" stroke-width="1.5"/>
+</svg>

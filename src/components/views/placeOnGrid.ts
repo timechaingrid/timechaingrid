@@ -48,7 +48,7 @@ import { DEFAULT_CHAIN_GRID_MIN, DEFAULT_CHAIN_GRID_MAX } from '@/lib/coords';
  *
  *   1. Tier-based scope (free / pro / max): server-side filtering by
  *      threshold (lifetime sats, miner status, or visible-viewport)
- *      before the bundle is shipped. The vault generator's wallet
+ *      before the bundle is shipped. The snapshot generator's wallet
  *      bundle in public/wallets-bundle.json is the v0.2 seed of this
  *      pattern — bounded by `firstSeenBlock <= TARGET_THROUGH_BLOCK`.
  *   2. Spatial culling: query by viewport bounds + zoom level,

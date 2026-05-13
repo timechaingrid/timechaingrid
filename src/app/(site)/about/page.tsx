@@ -80,11 +80,11 @@ export default function AboutPage() {
           <li>
             <strong className="text-[color:var(--color-text-primary)]">Researchers</strong>{' '}
             — query the lattice via the API, run Prolog over the fact base,
-            export an Obsidian vault.
+            export structured data.
           </li>
           <li>
             <strong className="text-[color:var(--color-text-primary)]">Educators</strong>{' '}
-            — show students 16 years of monetary history as a single
+            — show students Bitcoin&apos;s monetary history as a single
             scrubbable surface.
           </li>
           <li>

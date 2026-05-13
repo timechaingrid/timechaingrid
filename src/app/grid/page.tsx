@@ -1,80 +1,86 @@
 import type { Metadata } from 'next';
-import { CoinGridView } from '@/components/views/CoinGridView';
-import { WalletInspector } from '@/components/WalletInspector';
-import { BlockStats } from '@/components/BlockStats';
-import { Scrubber } from '@/components/Scrubber';
-import { Playback } from '@/components/Playback';
-import { PlayerLeaderboard } from '@/components/PlayerLeaderboard';
-import { BlockNarrative } from '@/components/BlockNarrative';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Grid view',
+  title: 'Grid view — under development',
   description:
-    "Bitcoin's digital real estate. Every coin a tile, every block opens new tiles. Pan, zoom, hover, click. timechaingrid.com.",
+    "Bitcoin's digital real estate. Every coin a tile, every block opens new tiles. The grid view is under development; data ingestion is in progress.",
 };
 
 /**
- * /grid — kiosk-mode page. Per user feedback 2026-04-30, the HUDs
- * are slimmed and consolidated to leave the canvas as much room as
- * possible:
+ * /grid — v0.0.1 placeholder.
  *
- *   - Left sidebar (lg+ only): BlockStats, WalletInspector,
- *     PlayerLeaderboard stacked, scrollable, ~280px wide.
- *   - Top-center: BlockNarrative card, compact storyteller.
- *   - Bottom strip: a single thin brass-pill containing Play,
- *     speed selector, scrubber, and tip-block readout.
+ * The full PixiJS spiral-grid renderer (CoinGridView + sidebars +
+ * scrubber + wallet inspector + block narrative) lives under
+ * `src/components/` and is wired up correctly. It is intentionally
+ * NOT rendered here while real-chain ingestion is in progress,
+ * because shipping the canvas with synthetic fixture data would
+ * mislead visitors about what they're looking at.
  *
- * Background docs and project narrative live on /about. Tap a
- * coin = pin its wallet (no subgrid drill-in anymore).
+ * Once the operator's bitcoind + electrs stack is synced and the
+ * snapshot generator has emitted per-block JSON sidecars under
+ * `public/blocks/`, swap the placeholder below for the actual
+ * `<CoinGridView />`.
  */
 export default function GridHome() {
   return (
-    <div className="relative h-full w-full">
-      {/* Lattice — fills the entire kiosk area underneath all overlays. */}
-      <div className="absolute inset-0">
-        <CoinGridView />
-      </div>
-
-      {/* Top-center storyteller card. */}
-      <BlockNarrative />
-
-      {/* Left sidebar — block stats + inspector + leaderboard.
-          Hidden on screens narrower than lg (1024px) so mobile/
-          tablet keeps the lattice unobstructed; on lg+ it sits
-          between top:3 and bottom:14 with internal scroll if the
-          stack overflows. */}
-      <div className="pointer-events-none absolute top-3 bottom-14 left-3 z-10 hidden w-72 max-w-[calc(100vw-1.5rem)] flex-col gap-3 overflow-y-auto pr-1 lg:flex">
-        <div className="pointer-events-auto">
-          <BlockStats />
+    <div className="flex h-full w-full items-center justify-center px-6">
+      <section className="brass-panel max-w-2xl rounded-xl p-10 text-center md:p-14">
+        <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+          Under development
+        </p>
+        <h1 className="text-display mt-4 text-3xl font-semibold leading-[1.1] md:text-5xl">
+          The grid is{' '}
+          <span className="brass-shimmer">being built.</span>
+        </h1>
+        <div className="mt-7 space-y-5 text-left text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
+          <p>
+            The deterministic spiral renderer is code-complete: PixiJS
+            canvas, per-block narrative, hover-driven empire borders,
+            scrubbable playback, kiosk HUD. What it currently lacks is
+            real-chain data — the operator&apos;s full-node sync and
+            snapshot ingestion are in progress.
+          </p>
+          <p>
+            We will not ship the canvas with synthetic fixture data
+            masquerading as real chain history. When the first real
+            block snapshots land, this placeholder is gone and the
+            lattice goes live.
+          </p>
+          <p className="text-[color:var(--color-text-muted)]">
+            Follow progress on the{' '}
+            <Link
+              href="/status"
+              className="text-[color:var(--color-accent-cyan)] underline-offset-4 hover:underline"
+            >
+              status page
+            </Link>
+            , or read more about the project on{' '}
+            <Link
+              href="/about"
+              className="text-[color:var(--color-accent-cyan)] underline-offset-4 hover:underline"
+            >
+              about
+            </Link>
+            .
+          </p>
         </div>
-        <div className="pointer-events-auto">
-          <WalletInspector />
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="brass-panel rounded-full px-6 py-3 text-mono text-sm uppercase tracking-[0.18em] transition-colors hover:border-[color:var(--color-amber)]"
+            style={{ color: 'var(--color-accent-cyan)' }}
+          >
+            ⟵ Back home
+          </Link>
+          <a
+            href="https://timechaingraph.com"
+            className="rounded-full border border-[color:var(--color-card-border)] px-6 py-3 text-mono text-sm uppercase tracking-[0.18em] text-[color:var(--color-gold)] transition-colors hover:border-[color:var(--color-gold)]"
+          >
+            Try the Graph ⟶
+          </a>
         </div>
-        <div className="pointer-events-auto">
-          <PlayerLeaderboard />
-        </div>
-      </div>
-
-      {/* Bottom strip: thin brass pill with all playback controls. */}
-      <div className="pointer-events-none absolute right-0 bottom-3 left-0 z-10 flex justify-center px-3">
-        <div
-          className="brass-panel pointer-events-auto flex w-full max-w-[820px] items-center gap-3 rounded-full px-3 py-1.5"
-          style={{
-            backgroundColor: 'rgba(8, 8, 12, 0.78)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          <Playback />
-          <div
-            aria-hidden
-            className="h-4 w-px shrink-0 bg-[color:var(--color-card-border)]"
-          />
-          <div className="flex-1">
-            <Scrubber />
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

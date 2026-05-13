@@ -54,8 +54,8 @@ bound to the `timechaingrid.com` custom domain.
 ## Generate per-block snapshots
 
 ```bash
-npm run vault:generate    # public/blocks/ + public/wallets-bundle.json
-npm run vault:validate    # schema + wikilink check on the vault tree
+npm run snapshot:generate    # public/blocks/ + public/wallets-bundle.json
+npm run snapshot:validate    # schema + cross-reference check on the snapshot tree
 ```
 
 Each block becomes a small JSON file under
@@ -67,7 +67,7 @@ per-block narrative card.
 To consume an operator-run real-substrate walker (advanced):
 
 ```bash
-GRID_REAL_SUBSTRATE_DIR=/path/to/walker/out npm run vault:generate
+GRID_REAL_SUBSTRATE_DIR=/path/to/walker/out npm run snapshot:generate
 ```
 
 If unset, the generator falls back to the synthetic 3,000-block
@@ -114,7 +114,7 @@ chain-tools/              offline data pipeline (operator infra)
 ├── lib/                  chain.mjs (issuance math), schemas.py
 ├── ingest/               operator-side chain walker (planned scope)
 ├── physics/              force sim (sister-side)
-└── vault/                generate-grid.mjs · validate.mjs
+└── snapshots/            generate-grid.mjs · validate.mjs
 
 public/blocks/            per-block JSON snapshots (gitignored, regenerated)
 public/wallets-bundle.json slim wallet bundle (gitignored, regenerated)

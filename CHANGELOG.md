@@ -31,16 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data path.
 - Live-status sidecar at `public/status.json` carrying chain tip, last
   block time, pipeline health, and snapshot freshness — auto-synced from
-  the operator-run substrate walker on every `npm run vault:generate`.
+  the operator-run substrate walker on every `npm run snapshot:generate`.
 - `chain-tools/lib/chain.mjs`: shared Bitcoin issuance constants and math
   (subsidy schedule, halving heights, cumulative supply, sat-precise
   bigint subsidy). 44 checkpoint tests pin the math against well-known
   Bitcoin reference points.
-- `chain-tools/vault/generate-grid.mjs`: deterministic vault generator
-  emitting Obsidian-vault content (genesis coin markdown + Prolog facts +
-  spiral index) plus the runtime artifacts above. Reads optional operator-
-  run real-substrate when `GRID_REAL_SUBSTRATE_DIR` env var is set;
-  otherwise falls back to a synthetic 3,000-block fixture.
+- Per-block snapshot generator (operator-side): deterministic
+  generator emitting structured markdown + Prolog facts + spiral
+  index plus the runtime artifacts above. Reads optional
+  operator-run real-substrate when `GRID_REAL_SUBSTRATE_DIR` env
+  var is set; otherwise falls back to a synthetic 3,000-block
+  fixture.
 - `scripts/privacy-audit.sh`: CI gate that fails the build if any
   forbidden third-party domain is referenced in `out/`.
 - GitHub Actions workflow running lint → typecheck → test → build →

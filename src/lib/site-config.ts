@@ -24,7 +24,7 @@ export const VIEW_HERO_DESCRIPTION =
 
 export const SISTER_BRAND = 'GRAPH';
 export const SISTER_DOMAIN = 'timechaingraph.com';
-export const SISTER_TAGLINE = 'a force-directed Obsidian-style graph of Bitcoin';
+export const SISTER_TAGLINE = 'a force-directed living network view of Bitcoin';
 export const SISTER_ACCENT = 'gold' as const;
 export const SISTER_URL = `https://${SISTER_DOMAIN}`;
 

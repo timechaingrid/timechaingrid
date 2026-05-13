@@ -51,10 +51,10 @@ jobs:
         # Catches schema drift between generate-grid.mjs and the
         # canvas/spiral-coord math; emits markdown + per-block JSON
         # snapshots into vault-grid/ + public/blocks/.
-        run: npm run vault:generate
+        run: npm run snapshot:generate
 
       - name: Validate vault-grid
         # Walks the generated tree, asserts frontmatter schemas +
         # all wikilinks resolve. Fails CI if the generator drifts
         # from the validator's expectations.
-        run: npm run vault:validate
+        run: npm run snapshot:validate

@@ -52,10 +52,10 @@ export class BitcoinChainAdapter implements ChainAdapter<WalletNode> {
   }
 
   /**
-   * Fetch the slim wallets bundle emitted by chain-tools/vault/
-   * generate-grid.mjs from sister's real-substrate. Returns wallets
-   * first-seen within the vault scope (matches the FIXTURE_SUBSTRATE
-   * range), with real Bitcoin addresses + real-chain role metadata.
+   * Fetch the slim wallets bundle emitted by the snapshot generator
+   * from the operator's real-substrate. Returns wallets first-seen
+   * within the snapshot scope (matches the FIXTURE_SUBSTRATE range),
+   * with real Bitcoin addresses + real-chain role metadata.
    *
    * v0.2+: when the parquet bundle on R2 is in scope, this swaps to
    * a DuckDB-Wasm query that filters by visible viewport / tier

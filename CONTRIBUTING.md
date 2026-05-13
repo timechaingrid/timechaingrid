@@ -96,8 +96,8 @@ merge until it's green.
 ```
 
 Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`, `perf`,
-`build`, `ci`. Scope is a short module hint (`grid`, `vault`, `home`,
-`docs`, etc.).
+`build`, `ci`. Scope is a short module hint (`grid`, `snapshots`,
+`home`, `docs`, etc.).
 
 Examples:
 

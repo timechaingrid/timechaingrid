@@ -46,9 +46,9 @@ export default function StatusPage() {
             ))}
           </ul>
           <p className="mt-4 text-mono text-[10px] text-[color:var(--color-text-faint)]">
-            Snapshot tree is regenerated locally with{' '}
-            <code className="text-mono">npm run vault:generate</code>;
-            real-chain ingest + CDN deploy land in subsequent releases.
+            Snapshot tree is regenerated locally by the operator&apos;s
+            chain-tools pipeline; real-chain ingest + CDN deploy land
+            in subsequent releases.
           </p>
         </div>
       </div>

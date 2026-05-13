@@ -213,10 +213,10 @@ function Mission() {
     <section className="border-t border-[color:var(--color-card-border)] py-10 md:py-12">
       <p className="text-display text-xl leading-snug text-[color:var(--color-text-secondary)] md:text-2xl md:leading-snug">
         Bitcoin&apos;s issuance is{' '}
-        <span className="text-[color:var(--color-text-primary)]">final</span>.
-        Twenty-one million coins, no more, no less. Timechain Grid is
-        where you can see them all — each in its place, each in its
-        time, all{' '}
+        <span className="text-[color:var(--color-text-primary)]">final</span>
+        . Twenty-one million coins, no more, no less.
+        Timechain Grid makes the map observable to anyone with a
+        browser — and{' '}
         <span className="text-[color:var(--color-accent-cyan)]">observable to no one but you</span>
         .
       </p>

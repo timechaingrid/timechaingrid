@@ -42,7 +42,7 @@ import { DEFAULT_CHAIN_GRID_MIN, DEFAULT_CHAIN_GRID_MAX } from '@/lib/coords';
  *     suppressed (e.g., a future tier toggle that views *just* the
  *     wallets without their territories).
  *
- * The "smart wallet placement" question for v0.2+ is: when sister's
+ * The "smart wallet placement" question for v0.2+ is: when companion's
  * substrate scales us from 50 fixture wallets to 157k+ real miner
  * wallets, how do we pick what to render?
  *
@@ -60,7 +60,7 @@ import { DEFAULT_CHAIN_GRID_MIN, DEFAULT_CHAIN_GRID_MAX } from '@/lib/coords';
  *      simultaneously-visible cells regardless of source size.
  *
  * The current commit's contribution: scaffolding the bundle pipeline
- * (sister's wallets → public/wallets-bundle.json → BitcoinChainAdapter
+ * (the snapshot pipeline's wallets → public/wallets-bundle.json → BitcoinChainAdapter
  * .getNodes) so the next round can flip CoinGridView's role-lookup
  * from FIXTURE_SUBSTRATE to the adapter without further data-shape
  * work. Identity moves to real chain truth; placement stays spiral.

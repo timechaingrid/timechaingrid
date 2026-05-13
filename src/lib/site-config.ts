@@ -2,7 +2,7 @@
  * Site-config — the only file that should differ between the Grid and Graph
  * repos in their shared layer (NavBar, SiteFooter, page.tsx, layout).
  *
- * Each sibling project declares its own VIEW + sister-domain pointer here;
+ * Each companion project declares its own VIEW + companion-view pointer here;
  * everything downstream reads from these constants so the components remain
  * byte-identical between the two repos. To keep the repos in sync,
  * components and pages are copied 1:1 — only this file diverges.
@@ -22,25 +22,24 @@ export const VIEW_HERO_BOTTOM = 'as real estate.';
 export const VIEW_HERO_DESCRIPTION =
   'Every coin ever mined is a tile on an expanding 2D grid. Satoshi at the origin. Each block opens new real estate, swirling outward from the center. Hover any tile to see who owns it; watch the map grow block by block from genesis to today.';
 
-export const SISTER_BRAND = 'GRAPH';
-export const SISTER_DOMAIN = 'timechaingraph.com';
-export const SISTER_TAGLINE = 'a force-directed living network view of Bitcoin';
-export const SISTER_ACCENT = 'gold' as const;
-export const SISTER_URL = `https://${SISTER_DOMAIN}`;
+export const OTHER_VIEW_BRAND = 'GRAPH';
+export const OTHER_VIEW_DOMAIN = 'timechaingraph.com';
+export const OTHER_VIEW_TAGLINE = 'a force-directed living network view of Bitcoin';
+export const OTHER_VIEW_ACCENT = 'gold' as const;
+export const OTHER_VIEW_URL = `https://${OTHER_VIEW_DOMAIN}`;
 
 /**
  * Whether shared components (NavBar, SiteFooter, landing-page-section
- * components) should surface cross-domain callouts beyond the single
- * "View as {SISTER}" button in the NavBar. Per user directive
- * 2026-04-30: "should only exist in the topside bar button as view
- * as graph, only that button linking to graph should remain". Set
- * to false on the Grid side; sister can keep true if she wants.
+ * components) should surface cross-view callouts beyond the single
+ * "{OTHER_VIEW_BRAND} View" button in the NavBar. Set to false here
+ * so the Grid landing page stays self-contained — the topbar button
+ * is the single canonical entry point to the other view.
  */
-export const SHOW_SISTER_CALLOUTS = false;
+export const SHOW_OTHER_VIEW_CALLOUTS = false;
 
 /**
  * Project-wide slogan. Same on both sibling sites and on the future
- * game build. A single, short brand line. Aligned with sister's naming.
+ * game build. A single, short brand line. Aligned with companion's naming.
  */
 export const BRAND_TAGLINE = 'Bitcoin Visualised';
 

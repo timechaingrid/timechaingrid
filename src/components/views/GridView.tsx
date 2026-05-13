@@ -41,7 +41,7 @@ const ZOOM_STEP = 0.0015; // wheel sensitivity
  * wallets. Camera state persists in `useTimegridStore.camera` so a
  * future minimap or share-link feature can read it.
  *
- * Sister's `<GraphView>` has drag-to-pin per node (force sim). This
+ * Companion's `<GraphView>` has drag-to-pin per node (force sim). This
  * view deliberately does NOT — wallet positions are stable forever,
  * and dragging a wallet would break the contract.
  */
@@ -269,7 +269,7 @@ export function GridView() {
       {/* HUD overlay — slogan + live block readout layered on the
           canvas so the brand and the scrubber position are always
           visible even when the user has scrolled marketing copy off
-          screen. Mirrors sister's GraphView HUD with cyan accent. */}
+          screen. Mirrors the companion GraphView HUD with cyan accent. */}
       <div
         aria-hidden
         className="text-mono pointer-events-none absolute bottom-3 left-3 text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-accent-cyan)] mix-blend-screen"

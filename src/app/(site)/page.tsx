@@ -11,7 +11,7 @@ import {
 /**
  * Landing page — single-purpose: explain the "Bitcoin as digital
  * real estate" narrative and send the visitor to /grid as fast as
- * possible. Sister-callouts live exclusively in the NavBar's "View
+ * possible. Companion-callouts live exclusively in the NavBar's "View
  * as Graph" button per user directive 2026-04-30.
  */
 export default function HomePage() {

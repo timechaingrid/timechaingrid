@@ -34,31 +34,50 @@ export function HalvingTimeline() {
   return (
     <div className="brass-panel rounded-lg p-6 md:p-8">
       <div className="flex items-baseline justify-between gap-4">
-        <span className="text-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--color-brass-bright)]">
+        <span className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
           Halving epochs
         </span>
-        <span className="text-mono text-[10px] tracking-wider text-[color:var(--color-text-muted)]">
+        <span className="text-mono text-[10px] tracking-[0.18em] text-[color:var(--color-text-muted)]">
           genesis → projected
         </span>
       </div>
 
-      <div className="relative mt-8 h-px w-full bg-gradient-to-r from-transparent via-[color:var(--color-brass)] to-transparent" />
+      {/* Connector — gradient base + soft gold haze on the middle span */}
+      <div className="relative mt-10">
+        <div
+          aria-hidden
+          className="absolute left-0 right-0 top-1.5 h-px"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent 0%, var(--color-brass-deep) 8%, var(--color-brass) 50%, var(--color-brass-deep) 92%, transparent 100%)',
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute left-0 right-0 top-1 h-[3px]"
+          style={{
+            background:
+              'linear-gradient(90deg, transparent 0%, transparent 10%, rgba(255, 215, 0, 0.12) 50%, transparent 90%, transparent 100%)',
+            filter: 'blur(3px)',
+          }}
+        />
 
-      <div className="relative -mt-3 grid grid-cols-6 gap-2 md:gap-4">
-        {HALVINGS.map((h, i) => (
-          <Marker
-            key={h.height}
-            halving={h}
-            index={i}
-            isLast={i === HALVINGS.length - 1}
-            isActive={isActiveHalving(currentBlock, h.height, HALVINGS, i)}
-            disabled={latestBlock > 0 && h.height > latestBlock}
-            onSelect={() => {
-              setPlaybackPlaying(false);
-              setCurrentBlock(h.height);
-            }}
-          />
-        ))}
+        <div className="relative grid grid-cols-6 gap-2 md:gap-4">
+          {HALVINGS.map((h, i) => (
+            <Marker
+              key={h.height}
+              halving={h}
+              index={i}
+              isLast={i === HALVINGS.length - 1}
+              isActive={isActiveHalving(currentBlock, h.height, HALVINGS, i)}
+              disabled={latestBlock > 0 && h.height > latestBlock}
+              onSelect={() => {
+                setPlaybackPlaying(false);
+                setCurrentBlock(h.height);
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -116,28 +135,40 @@ function Marker({
       disabled={disabled}
       aria-label={`Scrub to ${halving.label} (block ${halving.height.toLocaleString()})`}
       aria-pressed={isActive}
-      className="group flex flex-col items-center gap-2 rounded text-center transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
+      className="group relative flex flex-col items-center gap-2 rounded text-center transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
     >
+      {/* Slow amber halo behind the active dot */}
+      {isActive && (
+        <span
+          aria-hidden
+          className="absolute left-1/2 top-0 block h-7 w-7 -translate-x-1/2 -translate-y-2 rounded-full"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(245, 166, 35, 0.45) 0%, rgba(245, 166, 35, 0.10) 50%, transparent 75%)',
+            animation: 'pulse-soft 2.4s ease-in-out infinite',
+          }}
+        />
+      )}
       <span
-        className="block h-3 w-3 rounded-full transition-transform group-hover:scale-125"
+        className="relative z-10 block h-3 w-3 rounded-full transition-transform group-hover:scale-125"
         style={{
           background: dotColor,
-          boxShadow: `0 0 ${isActive ? 16 : 10}px ${dotColor}`,
+          boxShadow: `0 0 ${isActive ? 18 : 10}px ${dotColor}`,
           opacity: isLast && !isActive ? 0.55 : 1,
         }}
       />
       <span
-        className="text-mono text-xs font-medium md:text-sm"
+        className="mt-1 text-mono text-xs font-medium tracking-wider transition-colors md:text-sm"
         style={{ color: labelColor }}
       >
         {halving.year}
       </span>
-      <span className="text-mono text-[10px] text-[color:var(--color-text-muted)] md:text-xs">
+      <span className="text-mono text-[10px] tracking-wider text-[color:var(--color-text-muted)] md:text-xs">
         {halving.reward}
       </span>
       <span
-        className="hidden text-mono text-[9px] uppercase tracking-wider md:block"
-        style={{ color: 'var(--color-text-faint)' }}
+        className="hidden text-mono text-[9px] uppercase tracking-[0.2em] md:block"
+        style={{ color: isActive ? 'var(--color-brass-bright)' : 'var(--color-text-faint)' }}
       >
         {halving.label}
       </span>

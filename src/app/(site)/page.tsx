@@ -95,13 +95,14 @@ function Hero() {
 /* ─────────────────────────────────────────────────────────── */
 
 /**
- * HeroEmblem — large decorative version of the Logo with a faint
- * background grid suggesting the expanding lattice. Static SVG, no
- * runtime JS or external assets.
+ * HeroEmblem — large decorative version of the Logo with concentric
+ * brass rings, halving notches, and animated brass glow. Pure SVG +
+ * CSS, no runtime JS or external assets.
  */
 function HeroEmblem() {
   return (
     <div className="relative flex h-full w-full items-center justify-center">
+      {/* Faint background grid — the infinite plane the lattice lives on. */}
       <div
         aria-hidden
         className="absolute inset-0 rounded-3xl"
@@ -114,16 +115,93 @@ function HeroEmblem() {
             'radial-gradient(circle at center, #000 50%, transparent 90%)',
         }}
       />
+
+      {/* Soft brass glow halo — diffuse and slow. */}
       <div
         aria-hidden
-        className="absolute inset-[15%] rounded-full"
+        className="absolute inset-[10%] rounded-full"
         style={{
           background:
-            'radial-gradient(circle, rgba(193, 136, 64, 0.18) 0%, rgba(0,0,0,0) 70%)',
-          filter: 'blur(20px)',
+            'radial-gradient(circle, rgba(255, 215, 0, 0.16) 0%, rgba(193, 136, 64, 0.08) 40%, rgba(0,0,0,0) 70%)',
+          filter: 'blur(28px)',
+          animation: 'pulse-soft 7s ease-in-out infinite',
         }}
       />
-      <Logo size={280} label="Timechain Grid emblem" />
+
+      {/* Concentric brass rings — outermost slowly rotates with halving
+          notches; inner sits still as a steady frame. */}
+      <svg
+        aria-hidden
+        viewBox="0 0 400 400"
+        className="absolute inset-0 h-full w-full"
+        style={{ pointerEvents: 'none' }}
+      >
+        <defs>
+          <linearGradient id="ringBrass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(224, 166, 86, 0.55)" />
+            <stop offset="50%" stopColor="rgba(194, 136, 64, 0.4)" />
+            <stop offset="100%" stopColor="rgba(140, 95, 40, 0.55)" />
+          </linearGradient>
+        </defs>
+
+        {/* Outer ring — rotates slowly, halving notches at compass quadrants */}
+        <g className="gear-spin" style={{ transformOrigin: '200px 200px' }}>
+          <circle
+            cx="200"
+            cy="200"
+            r="190"
+            fill="none"
+            stroke="url(#ringBrass)"
+            strokeWidth="1.5"
+            strokeDasharray="2 8"
+            opacity="0.6"
+          />
+          {/* Halving notches */}
+          {[0, 90, 180, 270].map((deg) => (
+            <line
+              key={deg}
+              x1="200"
+              y1="6"
+              x2="200"
+              y2="18"
+              stroke="rgba(224, 166, 86, 0.7)"
+              strokeWidth="2"
+              transform={`rotate(${deg} 200 200)`}
+            />
+          ))}
+        </g>
+
+        {/* Inner ring — stationary, finer */}
+        <circle
+          cx="200"
+          cy="200"
+          r="170"
+          fill="none"
+          stroke="rgba(194, 136, 64, 0.25)"
+          strokeWidth="1"
+        />
+
+        {/* Diagonal accent rivets between rings */}
+        {[45, 135, 225, 315].map((deg) => {
+          const rad = (deg * Math.PI) / 180;
+          const cx = 200 + Math.cos(rad) * 180;
+          const cy = 200 + Math.sin(rad) * 180;
+          return (
+            <circle
+              key={deg}
+              cx={cx}
+              cy={cy}
+              r="2"
+              fill="rgba(140, 95, 40, 0.7)"
+            />
+          );
+        })}
+      </svg>
+
+      {/* The Logo itself — sits centered, gets a subtle Satoshi pulse */}
+      <div style={{ animation: 'pulse-satoshi 4s ease-in-out infinite' }}>
+        <Logo size={240} label="Timechain Grid emblem" />
+      </div>
     </div>
   );
 }
@@ -152,35 +230,25 @@ function RealEstatePillars() {
   const pillars = [
     {
       label: 'A tile per coin',
-      tone: 'gold',
       body:
         'Every BTC ever mined occupies one cell. Block 0 opens the first 50 cells around Satoshi. Each block after opens more, swirling outward.',
     },
     {
       label: 'Forever stationary',
-      tone: 'cyan',
       body:
         "A coin's tile never moves. Once minted, its coordinate is fixed for the rest of chain history. Bookmark a tile; come back any time.",
     },
     {
       label: 'Players occupy',
-      tone: 'amber',
       body:
         'Wallets are players, coins are property. Hover a tile to see who owns it. Tap to light up their full territory across the map.',
     },
     {
       label: 'Genesis to today',
-      tone: 'cyan',
       body:
         'Press play. The lattice expands block by block, halvings flash by, the modern map emerges from the genesis kernel.',
     },
-  ] as const;
-
-  const TONE_COLOR: Record<'cyan' | 'amber' | 'gold', string> = {
-    cyan: 'var(--color-accent-cyan)',
-    amber: 'var(--color-amber)',
-    gold: 'var(--color-gold)',
-  };
+  ];
 
   return (
     <section className="border-t border-[color:var(--color-card-border)] py-14 md:py-20">
@@ -188,12 +256,13 @@ function RealEstatePillars() {
         {pillars.map((p) => (
           <div
             key={p.label}
-            className="bg-[color:var(--color-background)] p-7 md:p-9"
+            className="group relative bg-[color:var(--color-background)] p-7 transition-colors md:p-9 hover:bg-[color:var(--color-background-light)]"
           >
-            <p
-              className="text-mono text-[10px] uppercase tracking-[0.28em]"
-              style={{ color: TONE_COLOR[p.tone] }}
-            >
+            <span
+              aria-hidden
+              className="absolute left-0 top-7 h-6 w-px bg-[color:var(--color-brass-bright)] opacity-0 transition-opacity duration-300 group-hover:opacity-60 md:top-9"
+            />
+            <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
               {p.label}
             </p>
             <p className="mt-5 leading-relaxed text-[color:var(--color-text-secondary)]">

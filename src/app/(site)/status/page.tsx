@@ -29,7 +29,7 @@ export default function StatusPage() {
       <div className="mt-10 grid gap-4 md:grid-cols-2">
         <LiveStatus />
         <div className="brass-panel rounded-lg p-5">
-          <p className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+          <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
             Pipeline health
           </p>
           <ul className="mt-3 space-y-2 text-mono text-xs text-[color:var(--color-text-secondary)]">

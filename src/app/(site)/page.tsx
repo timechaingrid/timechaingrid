@@ -19,6 +19,20 @@ import {
  * The cross-view link to the Graph project lives only in the NavBar
  * topbar button — no duplicate card on this page.
  */
+/** Gear tooth path — a simple cog outline (alternating outer/inner radius). */
+function gearPath(cx: number, cy: number, outerR: number, innerR: number, teeth: number): string {
+  const step = (Math.PI * 2) / (teeth * 2);
+  let d = '';
+  for (let i = 0; i < teeth * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = i * step;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)} ` : `L ${x.toFixed(2)} ${y.toFixed(2)} `;
+  }
+  return d + 'Z';
+}
+
 export default function HomePage() {
   return (
     <>
@@ -44,12 +58,12 @@ function Hero() {
           {BRAND_TAGLINE}
         </p>
         <h1
-          className="text-display text-5xl font-semibold leading-[1.02] tracking-tight md:text-7xl lg:text-[5.5rem]"
+          className="text-display hero-gradient text-5xl font-bold leading-[1.02] tracking-tight md:text-7xl lg:text-[5.5rem]"
           style={{ animation: 'drift-up 0.7s ease-out 0.15s both' }}
         >
           {VIEW_HERO_TOP}
           <br />
-          <span className="brass-shimmer">{VIEW_HERO_BOTTOM}</span>
+          {VIEW_HERO_BOTTOM}
         </h1>
         <p
           className="max-w-xl text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg"
@@ -122,7 +136,7 @@ function HeroEmblem() {
         className="absolute inset-[10%] rounded-full"
         style={{
           background:
-            'radial-gradient(circle, rgba(255, 215, 0, 0.16) 0%, rgba(193, 136, 64, 0.08) 40%, rgba(0,0,0,0) 70%)',
+            'radial-gradient(circle, rgba(0, 212, 255, 0.16) 0%, rgba(0, 168, 204, 0.08) 40%, rgba(0,0,0,0) 70%)',
           filter: 'blur(28px)',
           animation: 'pulse-soft 7s ease-in-out infinite',
         }}
@@ -142,6 +156,11 @@ function HeroEmblem() {
             <stop offset="50%" stopColor="rgba(194, 136, 64, 0.4)" />
             <stop offset="100%" stopColor="rgba(140, 95, 40, 0.55)" />
           </linearGradient>
+          <radialGradient id="gridGearFill" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(140, 95, 40, 0.34)" />
+            <stop offset="70%" stopColor="rgba(194, 136, 64, 0.14)" />
+            <stop offset="100%" stopColor="rgba(224, 166, 86, 0.04)" />
+          </radialGradient>
         </defs>
 
         {/* Outer ring — rotates slowly, halving notches at compass quadrants */}
@@ -196,6 +215,22 @@ function HeroEmblem() {
             />
           );
         })}
+
+        {/* Grinding cogs — brass machinery in opposing corners, slow
+            contra-rotation; the shared steampunk frame (matches Graph), with
+            a cyan hub-spark for Grid's accent. */}
+        <g className="gear-spin-rev" style={{ transformOrigin: '54px 54px' }}>
+          <path d={gearPath(54, 54, 32, 25, 12)} fill="url(#gridGearFill)" stroke="url(#ringBrass)" strokeWidth={2} strokeLinejoin="round" />
+          <circle cx={54} cy={54} r={16} fill="none" stroke="rgba(224, 166, 86, 0.5)" strokeWidth={1.3} />
+          <circle cx={54} cy={54} r={5} fill="rgba(140, 95, 40, 0.85)" />
+          <circle cx={53} cy={53} r={1.6} fill="rgba(120, 230, 255, 0.75)" />
+        </g>
+        <g className="gear-spin-rev" style={{ transformOrigin: '346px 346px' }}>
+          <path d={gearPath(346, 346, 26, 20, 10)} fill="url(#gridGearFill)" stroke="url(#ringBrass)" strokeWidth={1.8} strokeLinejoin="round" />
+          <circle cx={346} cy={346} r={13} fill="none" stroke="rgba(224, 166, 86, 0.5)" strokeWidth={1.2} />
+          <circle cx={346} cy={346} r={4} fill="rgba(140, 95, 40, 0.85)" />
+          <circle cx={345} cy={345} r={1.3} fill="rgba(120, 230, 255, 0.75)" />
+        </g>
       </svg>
 
       {/* The Logo itself — sits centered, gets a subtle Satoshi pulse */}

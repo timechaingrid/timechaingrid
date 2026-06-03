@@ -17,10 +17,10 @@ export const VIEW_DOMAIN = 'timechaingrid.com';
 export const VIEW_TAGLINE = "Bitcoin's digital real estate";
 export const VIEW_ACCENT = 'cyan' as const;
 
-export const VIEW_HERO_TOP = 'The map';
+export const VIEW_HERO_TOP = 'The Grid';
 export const VIEW_HERO_BOTTOM = 'of Bitcoin.';
 export const VIEW_HERO_DESCRIPTION =
-  'Bitcoin has a fixed supply and an unbroken issuance schedule. Every coin ever minted exists; none can be created or destroyed. Timechain Grid is the map — every coin a tile, every block a new ring of real estate expanding outward from Satoshi. Public ledger, public view. No one watches you watch.';
+  'Every coin a tile, every block a new ring expanding from Satoshi — the fixed ledger as a map you can finally read in your browser. Public to watch, private to use: no accounts, no tracking, no one watching you watch.';
 
 export const OTHER_VIEW_BRAND = 'GRAPH';
 export const OTHER_VIEW_DOMAIN = 'timechaingraph.com';

@@ -266,7 +266,7 @@ body::after {
 
 /* Home-hero headline — a vivid cyan gradient (punchier than brass-shimmer,
    which the smaller page heroes keep). Static for a bold, clean read; the
-   animated HeroVisual beside it carries the motion. */
+   animated emblem beside it carries the motion. */
 .hero-gradient {
   background: linear-gradient(
     115deg,

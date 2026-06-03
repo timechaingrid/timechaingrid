@@ -4,7 +4,7 @@ import { API_DOMAIN } from '@/lib/site-config';
 export const metadata: Metadata = {
   title: 'Privacy',
   description:
-    'Privacy posture: no third-party scripts, no Google Fonts, no analytics, no fingerprinting. Source data flows from Bitcoin&apos;s P2P network into self-hosted infra.',
+    "Privacy posture: no third-party scripts, no Google Fonts, no analytics, no fingerprinting. Source data flows from Bitcoin's P2P network into self-hosted infra.",
 };
 
 export default function PrivacyPage() {

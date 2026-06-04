@@ -15,12 +15,12 @@ export const VIEW: ViewId = 'grid';
 export const VIEW_BRAND = 'GRID';
 export const VIEW_DOMAIN = 'timechaingrid.com';
 export const VIEW_TAGLINE = "Bitcoin's digital real estate";
-export const VIEW_ACCENT = 'cyan' as const;
+export const VIEW_ACCENT = 'gold' as const;
 
-export const VIEW_HERO_TOP = 'The Grid';
+export const VIEW_HERO_TOP = 'Timechain Grid';
 export const VIEW_HERO_BOTTOM = 'of Bitcoin.';
 export const VIEW_HERO_DESCRIPTION =
-  'Every coin a tile, every block a new ring expanding from Satoshi — the fixed ledger as a map you can finally read in your browser. Public to watch, private to use: no accounts, no tracking, no one watching you watch.';
+  '“Timechain” was Satoshi’s name for the blockchain — a chain of timestamped blocks. Here it is, the fixed map it always was: every coin a tile, every block a ring from Satoshi, the ledger legible in your browser. Public to watch, private to use.';
 
 export const OTHER_VIEW_BRAND = 'GRAPH';
 export const OTHER_VIEW_DOMAIN = 'timechaingraph.com';

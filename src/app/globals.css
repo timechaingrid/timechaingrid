@@ -97,8 +97,8 @@ body::after {
   position: fixed;
   inset: 0;
   background-image:
-    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(0, 212, 255, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(194, 136, 64, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 215, 0, 0.045) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(194, 136, 64, 0.045) 0%, transparent 60%),
     repeating-linear-gradient(
       0deg,
       transparent 0,
@@ -120,6 +120,13 @@ body::after {
 @keyframes pulse-satoshi {
   0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.7)); }
   50%      { opacity: 1.0;  filter: drop-shadow(0 0 18px rgba(255, 215, 0, 1.0)); }
+}
+
+/* Grid tile-lattice sweep — a brightness wave staggered by ring distance so the
+   coin lattice reads as growing outward from Satoshi (Grid hero emblem). */
+@keyframes tile-sweep {
+  0%, 100% { opacity: 0.32; }
+  50%      { opacity: 1; }
 }
 
 @keyframes drift-up {
@@ -247,15 +254,16 @@ body::after {
 }
 
 .brass-shimmer {
-  /* Shared theme ramp — dimmed cyan (Grid's accent), so the wordmark, footer,
-     and every page heading read as one palette with the hero. Animated (slides 200%). */
+  /* Shared theme ramp — same dimmed brass → gold → amber as .hero-gradient
+     and the emblem, so the wordmark, footer, and every page heading read as
+     one palette with the hero. Animated (slides 200%). */
   background: linear-gradient(
     90deg,
-    #2A93B0 0%,
-    #54D6F0 30%,
-    #2BB4D6 50%,
-    #54D6F0 70%,
-    #2A93B0 100%
+    #D89A4E 0%,
+    #E8C028 30%,
+    #D88E1C 50%,
+    #E8C028 70%,
+    #D89A4E 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -264,17 +272,17 @@ body::after {
   animation: shimmer 6s linear infinite;
 }
 
-/* Home-hero headline — a vivid cyan gradient (punchier than brass-shimmer,
+/* Home-hero headline — a vivid gold gradient (punchier than brass-shimmer,
    which the smaller page heroes keep). Static for a bold, clean read; the
    animated emblem beside it carries the motion. */
 .hero-gradient {
   background: linear-gradient(
     115deg,
-    #2A93B0 0%,
-    #54D6F0 35%,
-    #2BB4D6 58%,
-    #54D6F0 80%,
-    #2A93B0 100%
+    #D89A4E 0%,
+    #E8C028 35%,
+    #D88E1C 58%,
+    #E8C028 80%,
+    #D89A4E 100%
   );
   -webkit-background-clip: text;
   background-clip: text;

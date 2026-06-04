@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Logo } from '@/components/Logo';
+import { HeroVisual } from '@/components/HeroVisual';
 import { HalvingTimeline } from '@/components/HalvingTimeline';
 import {
   VIEW_HERO_TOP,
@@ -19,20 +19,6 @@ import {
  * The cross-view link to the Graph project lives only in the NavBar
  * topbar button — no duplicate card on this page.
  */
-/** Gear tooth path — a simple cog outline (alternating outer/inner radius). */
-function gearPath(cx: number, cy: number, outerR: number, innerR: number, teeth: number): string {
-  const step = (Math.PI * 2) / (teeth * 2);
-  let d = '';
-  for (let i = 0; i < teeth * 2; i++) {
-    const r = i % 2 === 0 ? outerR : innerR;
-    const angle = i * step;
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)} ` : `L ${x.toFixed(2)} ${y.toFixed(2)} `;
-  }
-  return d + 'Z';
-}
-
 export default function HomePage() {
   return (
     <>
@@ -66,7 +52,7 @@ function Hero() {
           {VIEW_HERO_BOTTOM}
         </h1>
         <p
-          className="max-w-xl text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg"
+          className="max-w-xl text-pretty text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg"
           style={{ animation: 'drift-up 0.7s ease-out 0.25s both' }}
         >
           {VIEW_HERO_DESCRIPTION}
@@ -77,7 +63,7 @@ function Hero() {
         >
           <Link
             href="/grid"
-            className="brass-panel rounded-full px-7 py-3.5 text-mono text-xs uppercase tracking-[0.2em] transition-all hover:border-[color:var(--color-amber)] hover:shadow-[0_0_24px_rgba(0,212,255,0.18)]"
+            className="brass-panel rounded-full px-7 py-3.5 text-mono text-xs uppercase tracking-[0.2em] transition-all hover:border-[color:var(--color-amber)] hover:shadow-[0_0_24px_rgba(255,215,0,0.18)]"
             style={{ color: 'var(--color-amber)' }}
           >
             Open the grid ⟶
@@ -100,144 +86,9 @@ function Hero() {
         className="relative flex aspect-square items-center justify-center"
         style={{ animation: 'drift-up 0.9s ease-out 0.4s both' }}
       >
-        <HeroEmblem />
+        <HeroVisual />
       </div>
     </section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────── */
-
-/**
- * HeroEmblem — large decorative version of the Logo with concentric
- * brass rings, halving notches, and animated brass glow. Pure SVG +
- * CSS, no runtime JS or external assets.
- */
-function HeroEmblem() {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center">
-      {/* Faint background grid — the infinite plane the lattice lives on. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 rounded-3xl"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(193, 136, 64, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(193, 136, 64, 0.07) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-          maskImage: 'radial-gradient(circle at center, #000 50%, transparent 90%)',
-          WebkitMaskImage:
-            'radial-gradient(circle at center, #000 50%, transparent 90%)',
-        }}
-      />
-
-      {/* Soft brass glow halo — diffuse and slow. */}
-      <div
-        aria-hidden
-        className="absolute inset-[10%] rounded-full"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(0, 212, 255, 0.16) 0%, rgba(0, 168, 204, 0.08) 40%, rgba(0,0,0,0) 70%)',
-          filter: 'blur(28px)',
-          animation: 'pulse-soft 7s ease-in-out infinite',
-        }}
-      />
-
-      {/* Concentric brass rings — outermost slowly rotates with halving
-          notches; inner sits still as a steady frame. */}
-      <svg
-        aria-hidden
-        viewBox="0 0 400 400"
-        className="absolute inset-0 h-full w-full"
-        style={{ pointerEvents: 'none' }}
-      >
-        <defs>
-          <linearGradient id="ringBrass" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(224, 166, 86, 0.55)" />
-            <stop offset="50%" stopColor="rgba(194, 136, 64, 0.4)" />
-            <stop offset="100%" stopColor="rgba(140, 95, 40, 0.55)" />
-          </linearGradient>
-          <radialGradient id="gridGearFill" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(140, 95, 40, 0.34)" />
-            <stop offset="70%" stopColor="rgba(194, 136, 64, 0.14)" />
-            <stop offset="100%" stopColor="rgba(224, 166, 86, 0.04)" />
-          </radialGradient>
-        </defs>
-
-        {/* Outer ring — rotates slowly, halving notches at compass quadrants */}
-        <g className="gear-spin" style={{ transformOrigin: '200px 200px' }}>
-          <circle
-            cx="200"
-            cy="200"
-            r="190"
-            fill="none"
-            stroke="url(#ringBrass)"
-            strokeWidth="1.5"
-            strokeDasharray="2 8"
-            opacity="0.6"
-          />
-          {/* Halving notches */}
-          {[0, 90, 180, 270].map((deg) => (
-            <line
-              key={deg}
-              x1="200"
-              y1="6"
-              x2="200"
-              y2="18"
-              stroke="rgba(224, 166, 86, 0.7)"
-              strokeWidth="2"
-              transform={`rotate(${deg} 200 200)`}
-            />
-          ))}
-        </g>
-
-        {/* Inner ring — stationary, finer */}
-        <circle
-          cx="200"
-          cy="200"
-          r="170"
-          fill="none"
-          stroke="rgba(194, 136, 64, 0.25)"
-          strokeWidth="1"
-        />
-
-        {/* Diagonal accent rivets between rings */}
-        {[45, 135, 225, 315].map((deg) => {
-          const rad = (deg * Math.PI) / 180;
-          const cx = 200 + Math.cos(rad) * 180;
-          const cy = 200 + Math.sin(rad) * 180;
-          return (
-            <circle
-              key={deg}
-              cx={cx}
-              cy={cy}
-              r="2"
-              fill="rgba(140, 95, 40, 0.7)"
-            />
-          );
-        })}
-
-        {/* Grinding cogs — brass machinery in opposing corners, slow
-            contra-rotation; the shared steampunk frame (matches Graph), with
-            a cyan hub-spark for Grid's accent. */}
-        <g className="gear-spin-rev" style={{ transformOrigin: '54px 54px' }}>
-          <path d={gearPath(54, 54, 32, 25, 12)} fill="url(#gridGearFill)" stroke="url(#ringBrass)" strokeWidth={2} strokeLinejoin="round" />
-          <circle cx={54} cy={54} r={16} fill="none" stroke="rgba(224, 166, 86, 0.5)" strokeWidth={1.3} />
-          <circle cx={54} cy={54} r={5} fill="rgba(140, 95, 40, 0.85)" />
-          <circle cx={53} cy={53} r={1.6} fill="rgba(120, 230, 255, 0.75)" />
-        </g>
-        <g className="gear-spin-rev" style={{ transformOrigin: '346px 346px' }}>
-          <path d={gearPath(346, 346, 26, 20, 10)} fill="url(#gridGearFill)" stroke="url(#ringBrass)" strokeWidth={1.8} strokeLinejoin="round" />
-          <circle cx={346} cy={346} r={13} fill="none" stroke="rgba(224, 166, 86, 0.5)" strokeWidth={1.2} />
-          <circle cx={346} cy={346} r={4} fill="rgba(140, 95, 40, 0.85)" />
-          <circle cx={345} cy={345} r={1.3} fill="rgba(120, 230, 255, 0.75)" />
-        </g>
-      </svg>
-
-      {/* The Logo itself — sits centered, gets a subtle Satoshi pulse */}
-      <div style={{ animation: 'pulse-satoshi 4s ease-in-out infinite' }}>
-        <Logo size={240} label="Timechain Grid emblem" />
-      </div>
-    </div>
   );
 }
 
@@ -252,7 +103,7 @@ function Mission() {
         . Twenty-one million coins, no more, no less.
         Timechain Grid makes the map observable to anyone with a
         browser — and{' '}
-        <span className="text-[color:var(--color-accent-cyan)]">observable to no one but you</span>
+        <span className="text-[color:var(--color-gold)]">observable to no one but you</span>
         .
       </p>
     </section>
@@ -315,7 +166,7 @@ function RealEstatePillars() {
 function Timeline() {
   return (
     <section className="border-t border-[color:var(--color-card-border)] py-14 md:py-20">
-      <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+      <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
         Halving epochs
       </p>
       <p className="text-display mt-4 max-w-3xl text-xl leading-snug text-[color:var(--color-text-secondary)] md:text-2xl md:leading-snug">
@@ -338,7 +189,7 @@ function FinalCTA() {
     <section className="border-t border-[color:var(--color-card-border)] py-16 md:py-24">
       <div className="brass-panel flex flex-col items-start justify-between gap-6 rounded-xl p-8 md:flex-row md:items-center md:gap-10 md:p-10">
         <div className="flex-1">
-          <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+          <p className="text-mono text-[10px] uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
             Ready
           </p>
           <h2 className="text-display mt-3 text-3xl font-semibold leading-tight md:text-4xl">

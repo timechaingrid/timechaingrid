@@ -15,6 +15,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/gen-og-image.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -25,7 +26,7 @@
     "substrate:dump": "vitest run scripts/dump-substrate.test.ts",
     "snapshot:generate": "node chain-tools/vault/generate-grid.mjs",
     "snapshot:validate": "node chain-tools/vault/validate.mjs vault-grid",
-    "deploy": "next build && rm -rf out/blocks && wrangler pages deploy out --project-name=timechaingrid --branch=main"
+    "deploy": "node scripts/gen-og-image.mjs && next build && rm -rf out/blocks && wrangler pages deploy out --project-name=timechaingrid --branch=main"
   },
   "dependencies": {
     "next": "^16.2.4",
@@ -35,6 +36,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

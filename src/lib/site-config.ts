@@ -17,6 +17,9 @@ export const VIEW_DOMAIN = 'timechaingrid.com';
 export const VIEW_TAGLINE = "Bitcoin's digital real estate";
 export const VIEW_ACCENT = 'gold' as const;
 
+/** Proper-case brand for prose ("Timechain Grid"). Diverges Graph/Grid. */
+export const VIEW_BRAND_NAME = 'Grid';
+
 export const VIEW_HERO_TOP = 'Timechain Grid';
 export const VIEW_HERO_BOTTOM = 'of Bitcoin.';
 export const VIEW_HERO_DESCRIPTION =
@@ -56,6 +59,19 @@ export const SITE_TITLE = `Timechain ${VIEW_BRAND}`;
 export const SITE_TITLE_FULL = `${BRAND_TAGLINE} — Timechain ${VIEW_BRAND}`;
 export const SITE_DESCRIPTION =
   "Bitcoin's digital real estate, block by block. Every coin a tile, every block opens new tiles. Satoshi at the origin. Public, privacy-first, no third-party scripts.";
+
+/**
+ * Donation rails — Bitcoin-native, self-custodial (see /donate). The ONLY
+ * operator receive identifiers; these MUST differ between Graph and Grid.
+ * DONATION_BTC_ADDRESS is EMPTY until the operator sets Grid's own receive
+ * address (a distinct Sparrow address from Graph's) — empty ⇒ DONATION_LIVE
+ * false ⇒ /donate shows the "coming" state instead of an address + QR. Once set,
+ * regenerate the QR (qrencode → public/donate-btc-qr.svg).
+ */
+export const DONATION_BTC_ADDRESS = ''; // TODO: Grid's own bech32 receive address (≠ Graph's)
+export const DONATION_LIGHTNING_ADDRESS = ''; // coming: self-hosted via BTCPay/LNbits
+export const DONATION_LIVE =
+  DONATION_BTC_ADDRESS.length > 0 && !DONATION_BTC_ADDRESS.includes('PLACEHOLDER');
 
 /**
  * Contact + social. Per-site support mailbox (operator provisions it). Social

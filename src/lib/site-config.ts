@@ -56,3 +56,26 @@ export const SITE_TITLE = `Timechain ${VIEW_BRAND}`;
 export const SITE_TITLE_FULL = `${BRAND_TAGLINE} — Timechain ${VIEW_BRAND}`;
 export const SITE_DESCRIPTION =
   "Bitcoin's digital real estate, block by block. Every coin a tile, every block opens new tiles. Satoshi at the origin. Public, privacy-first, no third-party scripts.";
+
+/**
+ * Contact + social. Per-site support mailbox (operator provisions it). Social
+ * handles are EMPTY until the accounts exist — each footer link renders only
+ * when its handle is set, so going live is a one-line edit here (no code change,
+ * mirrors the Graph sibling's gating). These MUST diverge between Graph and Grid.
+ * Typed `: string` so the "is it set?" conditionals aren't constant-folded.
+ */
+export const SUPPORT_EMAIL: string = 'support@timechaingrid.com';
+export const X_HANDLE: string = ''; // e.g. 'timechaingrid' (no @)
+export const NOSTR_NPUB: string = ''; // e.g. 'npub1…'
+export const GITHUB_URL: string = ''; // e.g. 'https://github.com/<org>/timechaingrid' (repo must be public)
+
+export interface SocialLink {
+  label: string;
+  href: string;
+}
+/** Configured socials only, in display order. Empty handles are skipped. */
+export const SOCIAL_LINKS: SocialLink[] = [
+  ...(X_HANDLE ? [{ label: 'X', href: `https://x.com/${X_HANDLE}` }] : []),
+  ...(NOSTR_NPUB ? [{ label: 'Nostr', href: `https://njump.me/${NOSTR_NPUB}` }] : []),
+  ...(GITHUB_URL ? [{ label: 'GitHub', href: GITHUB_URL }] : []),
+];

@@ -61,14 +61,13 @@ export const SITE_DESCRIPTION =
   "Bitcoin's digital real estate, block by block. Every coin a tile, every block opens new tiles. Satoshi at the origin. Public, privacy-first, no third-party scripts.";
 
 /**
- * Donation rails — Bitcoin-native, self-custodial (see /donate). The ONLY
- * operator receive identifiers; these MUST differ between Graph and Grid.
- * DONATION_BTC_ADDRESS is EMPTY until the operator sets Grid's own receive
- * address (a distinct Sparrow address from Graph's) — empty ⇒ DONATION_LIVE
- * false ⇒ /donate shows the "coming" state instead of an address + QR. Once set,
- * regenerate the QR (qrencode → public/donate-btc-qr.svg).
+ * Donation rails — Bitcoin-native, self-custodial (see /donate). Operator
+ * decision (2026-06-05): Grid intentionally SHARES Graph's receive address —
+ * one Sparrow wallet collects for both sites. Verified P2WPKH (bitcoind
+ * validateaddress: isvalid). public/donate-btc-qr.svg encodes bitcoin:<addr>
+ * (same QR as Graph, decode-verified).
  */
-export const DONATION_BTC_ADDRESS = ''; // TODO: Grid's own bech32 receive address (≠ Graph's)
+export const DONATION_BTC_ADDRESS = 'bc1q2hhsxyuzj4e6wcjegayddjphdry02wdef9v62l';
 export const DONATION_LIGHTNING_ADDRESS = ''; // coming: self-hosted via BTCPay/LNbits
 export const DONATION_LIVE =
   DONATION_BTC_ADDRESS.length > 0 && !DONATION_BTC_ADDRESS.includes('PLACEHOLDER');

@@ -1,5 +1,11 @@
 # Bitcoin data ingest — options + contract
 
+> **⚠️ SUPERSEDED (2026-06-06).** This planning doc predates the shipped
+> pipeline and references the retired electrs/`extract_*.py` approach. The real
+> path is bitcoind JSON-RPC → combiner walk → DuckDB reduce → tiered Parquet;
+> see **`chain-tools/README.md`** (design) and `chain-tools/lib/schemas.py`
+> (output contract). Kept for historical context.
+
 Per user directive 2026-04-30: "max effort work on the setup, retrieving
 correct bitcoin blockchain data to build this 2D real estate
 chronological grid". This doc captures the options, the contract the

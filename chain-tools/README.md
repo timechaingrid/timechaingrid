@@ -1,75 +1,60 @@
 # chain-tools
 
-Offline data pipeline for `apps/timegrid`. Extracts the wallet + activity + position dataset from a self-hosted Bitcoin Core node and packages it as parquet snapshots for distribution via our own CDN.
+Operator-side data pipeline for **Timechain Grid**. Everything here runs on
+infra the operator controls; the browser never talks to these tools at runtime —
+they produce static artifacts the frontend loads. This is the privacy seam:
+data flows P2P from Bitcoin's own protocol into the operator's node, and only
+static, pre-built files reach the viewer. **No third-party indexer (no electrs),
+no third-party API.**
 
-The browser never talks to any of these tools at runtime — they produce static artifacts that the frontend loads as parquet from R2 (or equivalent). This is the privacy seam: ingestion happens here, on infra we control, with data flowing P2P from Bitcoin's protocol layer; everything downstream is read-only.
+## Current state (v0.1)
 
-## Pipeline overview
+The live lattice is driven by the **snapshot generators**, which produce the
+per-block JSON snapshots + slim wallet bundle the canvas reads:
 
+```bash
+npm run snapshot:generate   # chain-tools/vault/generate-grid.mjs
+                            #   → public/blocks/* + public/wallets-bundle.json
+npm run snapshot:validate   # chain-tools/vault/validate.mjs (schema + xref check)
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────────┐
-│   bitcoind   ├───▶│   electrs    │───▶│ ingest/extract_  │
-│ (full node,  │    │ (UTXO index) │    │  wallets.py      │
-│  ~600GB)     │    │              │    │                  │
-└──────────────┘    └──────────────┘    └────────┬─────────┘
-   ▲                                              │
-   │ Bitcoin P2P protocol                         ▼
-   │                                     ┌─────────────────┐
-[Bitcoin Network]                        │ wallets.parquet │
-                                         │ activity.parquet│
-                                         └────────┬────────┘
-                                                  │
-                                                  ▼
-                                         ┌─────────────────┐
-                                         │ physics/        │
-                                         │ (Rust force-sim)│
-                                         └────────┬────────┘
-                                                  │
-                                                  ▼
-                                         ┌─────────────────┐
-                                         │ keyframes/      │
-                                         │   N.parquet     │
-                                         └────────┬────────┘
-                                                  │
-                                                  ▼
-                                         ┌─────────────────┐
-                                         │ deploy/         │
-                                         │ push_to_r2.sh   │
-                                         └────────┬────────┘
-                                                  │
-                                                  ▼
-                                            CDN bucket
-                                            (Cloudflare R2)
+
+Without an operator real-substrate, the generator emits a deterministic
+synthetic fixture (the v0.1 demo). To feed a real operator walk:
+
+```bash
+GRID_REAL_SUBSTRATE_DIR=/path/to/walk/out npm run snapshot:generate
 ```
+
+## Full operator pipeline (shared with the Graph sister)
+
+The coin substrate is built by the same map-reduce pipeline the Graph sister
+uses: bitcoind `getblock` (verbosity 3) → a combiner walk → DuckDB out-of-core
+reduce → tiered **Parquet** bundle → Cloudflare R2 → browser DuckDB-Wasm. The
+parquet **output contract** (column names + types every consumer reads against)
+is `lib/schemas.py`.
 
 ## Directory layout
 
 ```
 chain-tools/
-├── ingest/                  Python — bitcoind/electrs queries → parquet
-│   ├── extract_wallets.py   Build wallets.parquet (one row per significant address)
-│   ├── extract_activity.py  Build activity.parquet (per-block events)
-│   ├── significance_filter.py  Heuristic: miners + (>1 BTC OR >100 txs)
-│   └── requirements.txt     Python deps
-├── physics/                 Rust — force-directed sim → keyframes
-│   ├── Cargo.toml
-│   └── src/
-│       ├── main.rs
-│       └── spatial_index.rs
+├── ingest/
+│   └── requirements.txt        Python deps (duckdb + pyarrow)
+├── lib/
+│   ├── chain.mjs               halving / subsidy / issuance math
+│   └── schemas.py              pyarrow WALLETS/BONDS/COINS/ACTIVITY schemas (the contract)
+├── vault/
+│   ├── generate-grid.mjs       per-block snapshot generator (coin lattice)
+│   ├── generate.mjs            shared vault projection
+│   └── validate.mjs            snapshot schema + cross-reference validator
+├── physics/                    EXPERIMENTAL Rust force-sim — not part of the
+│                               v0.1 pipeline
 └── deploy/
-    └── push_to_r2.sh        rsync parquet bundle to R2 bucket
+    └── push_to_r2.sh           upload the bundle to R2
 ```
 
 ## Prerequisites (operator)
 
-1. **bitcoind** — full node with `txindex=1`. ~600GB disk, ~24-48h initial sync.
-2. **electrs** — Rust Electrum server on top of bitcoind. ~200GB additional index.
-3. **Python 3.11+** with `pip install -r ingest/requirements.txt`.
-4. **Rust 1.80+** (`rustup install stable`).
-5. **wrangler** (Cloudflare CLI) authenticated to the target account.
-
-See `apps/timegrid/README.md` for how the published parquet bundle is consumed.
-
-## Status
-
-All pipeline scripts are skeletons. The data shape, CLI interface, and intermediate file format are documented in each script's header; implementation lands once a target bitcoind/electrs instance exists.
+1. **bitcoind** — own full node, JSON-RPC enabled (cookie auth). **No electrs.**
+2. **Python venv** — `python3 -m venv chain-tools/.venv` then
+   `chain-tools/.venv/bin/pip install -r chain-tools/ingest/requirements.txt`.
+3. **Node 26+**.

@@ -1,5 +1,11 @@
 # bitcoind + electrs runbook (data ingest path A)
 
+> **⚠️ SUPERSEDED (2026-06-06).** This describes the earlier *electrs-based*
+> ingest plan, which was **not** adopted. The shipped pipeline reads the
+> operator's own bitcoind directly over JSON-RPC (no electrs) → combiner walk →
+> DuckDB reduce → tiered Parquet. See **`chain-tools/README.md`** for the
+> current design. Kept only for the bitcoind-provisioning notes.
+
 Concrete steps to provision the self-hosted Bitcoin Core + Electrs
 indexer that feeds the eventual production parquet pipeline. This is
 the implementation of **Option A** in `docs/bitcoin-data-ingest.md`

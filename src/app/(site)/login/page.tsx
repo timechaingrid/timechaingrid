@@ -55,7 +55,7 @@ export default function LoginPage() {
             timechaingrid.com
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[color:var(--color-text-secondary)]">
-            All tiers visible. No auth. No payment. Privacy verifiable
+            Everything visible. No auth. No payment. Privacy verifiable
             via the Network tab. This is where you are now.
           </p>
           <ul className="mt-4 space-y-2 text-mono text-xs">
@@ -69,10 +69,10 @@ export default function LoginPage() {
             </li>
             <li>
               <Link
-                href="/pricing"
+                href="/donate"
                 className="text-[color:var(--color-accent)] hover:underline"
               >
-                → /pricing (free for all)
+                → /donate (free for all, donation-funded)
               </Link>
             </li>
             <li>

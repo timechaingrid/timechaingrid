@@ -58,8 +58,8 @@ export class BitcoinChainAdapter implements ChainAdapter<WalletNode> {
    * with real Bitcoin addresses + real-chain role metadata.
    *
    * v0.2+: when the parquet bundle on R2 is in scope, this swaps to
-   * a DuckDB-Wasm query that filters by visible viewport / tier
-   * resolution — the bundle here is the same shape, just smaller.
+   * a DuckDB-Wasm query that filters by visible viewport — the
+   * bundle here is the same shape, just smaller.
    */
   async getNodes(): Promise<WalletNode[]> {
     try {

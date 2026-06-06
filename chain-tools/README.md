@@ -29,7 +29,7 @@ GRID_REAL_SUBSTRATE_DIR=/path/to/walk/out npm run snapshot:generate
 
 The coin substrate is built by the same map-reduce pipeline the Graph sister
 uses: bitcoind `getblock` (verbosity 3) → a combiner walk → DuckDB out-of-core
-reduce → tiered **Parquet** bundle → Cloudflare R2 → browser DuckDB-Wasm. The
+reduce → single public **Parquet** bundle → Cloudflare R2 → browser DuckDB-Wasm. The
 parquet **output contract** (column names + types every consumer reads against)
 is `lib/schemas.py`.
 

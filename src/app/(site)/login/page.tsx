@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="py-12 md:py-16">
-      <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+      <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
         Identity · split-surface
       </p>
       <h1 className="text-display mt-3 text-4xl font-semibold leading-[1.05] md:text-6xl">
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <div className="brass-panel rounded-lg p-6">
-          <p className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-accent-cyan)]">
+          <p className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-accent)]">
             Public viewer
           </p>
           <p className="text-display mt-2 text-2xl font-semibold">
@@ -62,7 +62,7 @@ export default function LoginPage() {
             <li>
               <Link
                 href="/grid"
-                className="text-[color:var(--color-accent-cyan)] hover:underline"
+                className="text-[color:var(--color-accent)] hover:underline"
               >
                 → /grid (the lattice)
               </Link>
@@ -70,7 +70,7 @@ export default function LoginPage() {
             <li>
               <Link
                 href="/pricing"
-                className="text-[color:var(--color-accent-cyan)] hover:underline"
+                className="text-[color:var(--color-accent)] hover:underline"
               >
                 → /pricing (free for all)
               </Link>
@@ -78,7 +78,7 @@ export default function LoginPage() {
             <li>
               <Link
                 href="/privacy"
-                className="text-[color:var(--color-accent-cyan)] hover:underline"
+                className="text-[color:var(--color-accent)] hover:underline"
               >
                 → /privacy (full disclosure)
               </Link>

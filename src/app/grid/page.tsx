@@ -26,7 +26,7 @@ export default function GridHome() {
   return (
     <div className="flex h-full w-full items-center justify-center px-6">
       <section className="brass-panel max-w-2xl rounded-xl p-10 text-center md:p-14">
-        <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+        <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
           Under development
         </p>
         <h1 className="text-display mt-4 text-3xl font-semibold leading-[1.1] md:text-5xl">
@@ -51,14 +51,14 @@ export default function GridHome() {
             Follow progress on the{' '}
             <Link
               href="/status"
-              className="text-[color:var(--color-accent-cyan)] underline-offset-4 hover:underline"
+              className="text-[color:var(--color-accent)] underline-offset-4 hover:underline"
             >
               status page
             </Link>
             , or read more about the project on{' '}
             <Link
               href="/about"
-              className="text-[color:var(--color-accent-cyan)] underline-offset-4 hover:underline"
+              className="text-[color:var(--color-accent)] underline-offset-4 hover:underline"
             >
               about
             </Link>
@@ -69,7 +69,7 @@ export default function GridHome() {
           <Link
             href="/"
             className="brass-panel rounded-full px-6 py-3 text-mono text-sm uppercase tracking-[0.18em] transition-colors hover:border-[color:var(--color-amber)]"
-            style={{ color: 'var(--color-accent-cyan)' }}
+            style={{ color: 'var(--color-accent)' }}
           >
             ⟵ Back home
           </Link>

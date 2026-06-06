@@ -100,7 +100,7 @@ export function PlayerLeaderboard() {
                 }}
                 aria-label={`Rank ${i + 1}: ${shortAddress(row.wallet.address)} owns ${row.coinCount} coins. Click to highlight their territory.`}
                 aria-pressed={isPinned}
-                className="group flex w-full items-center gap-3 rounded px-2 py-1.5 text-left transition-colors hover:bg-[color:var(--color-card-border)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--color-accent-cyan)]"
+                className="group flex w-full items-center gap-3 rounded px-2 py-1.5 text-left transition-colors hover:bg-[color:var(--color-card-border)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--color-accent)]"
                 style={
                   isPinned
                     ? { background: 'rgba(0, 212, 255, 0.08)' }
@@ -122,7 +122,7 @@ export function PlayerLeaderboard() {
                   }}
                 />
                 <span
-                  className="text-mono flex-1 truncate text-xs text-[color:var(--color-text-primary)] group-hover:text-[color:var(--color-accent-cyan)]"
+                  className="text-mono flex-1 truncate text-xs text-[color:var(--color-text-primary)] group-hover:text-[color:var(--color-accent)]"
                   title={row.wallet.address}
                 >
                   {shortAddress(row.wallet.address)}

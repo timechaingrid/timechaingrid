@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="py-12 md:py-16">
-      <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent-cyan)]">
+      <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
         Background
       </p>
       <h1 className="text-display mt-3 text-4xl font-semibold leading-[1.05] md:text-6xl">
@@ -33,7 +33,7 @@ export default function AboutPage() {
           origin. Tiles are colored by their owner. Hover to inspect;
           tap to see a player&apos;s full territory light up. Open
           the{' '}
-          <Link href="/grid" className="text-[color:var(--color-accent-cyan)] underline-offset-4 hover:underline">
+          <Link href="/grid" className="text-[color:var(--color-accent)] underline-offset-4 hover:underline">
             grid
           </Link>{' '}
           and watch the map grow.

@@ -272,7 +272,7 @@ export function GridView() {
           screen. Mirrors the companion GraphView HUD with cyan accent. */}
       <div
         aria-hidden
-        className="text-mono pointer-events-none absolute bottom-3 left-3 text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-accent-cyan)] mix-blend-screen"
+        className="text-mono pointer-events-none absolute bottom-3 left-3 text-[10px] uppercase tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen"
       >
         {BRAND_TAGLINE}
       </div>

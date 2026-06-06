@@ -562,7 +562,7 @@ export function CoinGridView() {
         className="text-mono pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]"
       >
         <span
-          className="tracking-[0.28em] text-[color:var(--color-accent-cyan)] mix-blend-screen"
+          className="tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen"
         >
           {BRAND_TAGLINE}
         </span>

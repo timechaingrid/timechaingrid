@@ -223,7 +223,7 @@ data source from the public/status.json fixture to live R2.
 
 ## Step 6 — Schedule regeneration
 
-Cron entry on the bitcoind host (NOT in local assistant tooling):
+Cron entry on the bitcoind host (operator-side, not in any local tooling):
 
 ```
 # crontab -u bitcoin -e

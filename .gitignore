@@ -57,20 +57,8 @@ public/wallets-bundle.json
 __pycache__/
 *.pyc
 
-# local assistant tooling session + prompt + memory state — operator-internal,
-# never tracked. This includes:
-#   - the entire internal session files/ orchestration tree (layers, rules, seed,
-#     manifest, mission, sibling-outbox, etc.)
-#   - the root-level the project spec (project-agent context for AI tools)
-#   - any MEMORY.md, anywhere in the tree (per-session memory)
-# Per user directive: no session/prompt data on GitHub, ever.
-internal session files/
-the project spec
-MEMORY.md
-**/MEMORY.md
-
-# Operator-internal sister-coordination script — refs the sibling project's
-# internal session files/ tree which is not part of either public repo.
+# Operator-internal cross-project coordination script — local-only,
+# never part of the public repo.
 scripts/sync-sibling.sh
 
 # Operator-internal records — local-only, not part of the public OSS

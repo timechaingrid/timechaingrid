@@ -46,8 +46,6 @@ chain-tools/
 │   ├── generate-grid.mjs       per-block snapshot generator (coin lattice)
 │   ├── generate.mjs            shared vault projection
 │   └── validate.mjs            snapshot schema + cross-reference validator
-├── physics/                    EXPERIMENTAL Rust force-sim — not part of the
-│                               v0.1 pipeline
 └── deploy/
     └── push_to_r2.sh           upload the bundle to R2
 ```

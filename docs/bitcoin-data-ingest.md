@@ -109,8 +109,8 @@ schema unchanged; values become live.
      `significance_filter.is_significant()`, writes wallets.parquet
    - `extract_activity.py` walks the chain block-by-block, emits
      coins, bonds, and per-block activity sidecars
-5. The Rust `chain-tools/physics/` runs the force-directed pre-bake
-   for the Graph view's keyframes.
+5. (Obsolete) force-directed positioning is now done live in the
+   browser (JS Barnes-Hut), not pre-baked operator-side.
 6. `chain-tools/deploy/push_to_r2.sh` uploads the artifacts.
 
 **Cost:** ~$50-100/month for a Hetzner dedicated; one-time ~$200 if

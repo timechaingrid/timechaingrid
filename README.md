@@ -1,5 +1,9 @@
 # Timechain Grid
 
+<p align="center">
+  <img src="public/og.png" alt="Timechain Grid — Bitcoin's digital real estate" width="640" />
+</p>
+
 **Bitcoin's digital real estate, block by block.**
 
 A privacy-first, no-tracking 2D viewer of the Bitcoin chain. Every coin
@@ -133,6 +137,21 @@ public/status.json        live tip + pipeline health sidecar
   granularity). Common-input wallet clustering. Tor onion service.
 - **v0.4:** developer API at `api.timechaingrid.com` for query +
   export workflows.
+
+## Support
+
+Timechain Grid is free and open source, funded entirely by voluntary Bitcoin
+donations — no ads, no tracking, no token, no paywall, no funding round.
+
+**Donate on-chain (BTC):**
+[`bc1q2hhsxyuzj4e6wcjegayddjphdry02wdef9v62l`](https://timechaingrid.com/donate)
+
+Scan the QR on the **[donate page](https://timechaingrid.com/donate)** — always
+treat that page as the canonical source and verify the address there before
+sending. Donations go to running the project: hosting, the self-hosted bitcoind
+full node, and CDN bandwidth for the data bundle.
+
+---
 
 ## Contributing
 

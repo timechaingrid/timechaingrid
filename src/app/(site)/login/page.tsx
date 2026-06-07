@@ -75,14 +75,6 @@ export default function LoginPage() {
                 → /donate (free for all, donation-funded)
               </Link>
             </li>
-            <li>
-              <Link
-                href="/privacy"
-                className="text-[color:var(--color-accent)] hover:underline"
-              >
-                → /privacy (full disclosure)
-              </Link>
-            </li>
           </ul>
         </div>
         <div className="brass-panel rounded-lg p-6" style={{ opacity: 0.85 }}>

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="py-12 md:py-16">
-      <p className="text-mono text-xs uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
+      <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
         Identity · split-surface
       </p>
       <h1 className="text-display mt-3 text-4xl font-semibold leading-[1.05] md:text-6xl">
@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
         <div className="brass-panel rounded-lg p-6">
-          <p className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-accent)]">
+          <p className="text-mono text-base uppercase tracking-[0.22em] text-[color:var(--color-accent)]">
             Public viewer
           </p>
           <p className="text-display mt-2 text-2xl font-semibold">
@@ -86,7 +86,7 @@ export default function LoginPage() {
           </ul>
         </div>
         <div className="brass-panel rounded-lg p-6" style={{ opacity: 0.85 }}>
-          <p className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-amber)]">
+          <p className="text-mono text-base uppercase tracking-[0.22em] text-[color:var(--color-amber)]">
             Developer API · v0.4
           </p>
           <p className="text-display mt-2 text-2xl font-semibold">

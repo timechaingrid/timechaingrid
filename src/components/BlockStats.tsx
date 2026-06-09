@@ -3,6 +3,7 @@
 import { useTimegridStore } from '@/store/timegridStore';
 import { epochFromHeight, isHalvingBlock } from '@/types/block';
 import { subsidyAtBlock, cumulativeSubsidy } from '@/lib/spiral';
+import { getLoadedCoinSubstrate } from '@/data/coinSubstrate';
 
 /**
  * BlockStats — block-level metadata for whatever block the scrubber
@@ -49,7 +50,14 @@ export function BlockStats() {
   const epoch = epochFromHeight(currentBlock);
   const halvings = Math.floor(currentBlock / 210_000);
   const isHalving = isHalvingBlock(currentBlock);
-  const estimatedDate = estimateBlockDate(currentBlock);
+  // Prefer the REAL block timestamp from the substrate (bundled per-block
+  // wall-clock) and fall back to the 10-minute estimate only while the data
+  // is still loading or for blocks past the bundled tip.
+  const realUnix = getLoadedCoinSubstrate()?.blockTime(currentBlock);
+  const blockDate = realUnix
+    ? new Date(realUnix * 1000)
+    : estimateBlockDate(currentBlock);
+  const dateIsReal = Boolean(realUnix);
   // Per user directive 2026-04-30: "fractions will always be
   // scrubbed to whole BTC" — every display value floors to the
   // nearest whole BTC since the grid quantizes 1 cell = 1 BTC.
@@ -94,7 +102,7 @@ export function BlockStats() {
               label="Next halving"
               value={`in ${blocksToNextHalving.toLocaleString()} blocks`}
             />
-            <Field label="Estimated date" value={formatDate(estimatedDate)} />
+            <Field label={dateIsReal ? 'Date' : 'Est. date'} value={formatDate(blockDate)} />
             <Field label="Latest tip" value={`block ${latestBlock.toLocaleString()}`} />
           </dl>
         </>

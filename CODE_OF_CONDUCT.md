@@ -72,7 +72,7 @@ or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the maintainers at **conduct@timechaingrid.com**. All complaints
+reported to the maintainers at **legal@timechaingrid.com**. All complaints
 will be reviewed and investigated promptly and fairly. The maintainers are
 obligated to respect the privacy and security of the reporter of any incident.
 

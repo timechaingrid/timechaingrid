@@ -95,3 +95,4 @@ vault-graph/prolog/*
 !vault-graph/prolog/rules/
 !vault-graph/prolog/rules/**
 *.swp
+/x-banner.png

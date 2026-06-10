@@ -30,7 +30,6 @@ export function MinerInspector() {
   const selected = useTimegridStore((s) => s.selectedWallet);
   const setSelected = useTimegridStore((s) => s.setSelectedWallet);
   const latestBlock = useTimegridStore((s) => s.latestBlock);
-  const colorMode = useTimegridStore((s) => s.gridColorMode);
 
   if (!selected) return null;
   const sub = getLoadedCoinSubstrate();
@@ -38,31 +37,14 @@ export function MinerInspector() {
   if (!sub || !stats) return null;
 
   const isCluster = selected === SATOSHI_CLUSTER_KEY;
-  const inWealth = colorMode === 'wealth';
   const sharePct = latestBlock > 0 ? (stats.blocks / (latestBlock + 1)) * 100 : 0;
-
-  // Wealth tier (by coins minted) — mirrors the wealth-lens palette/legend.
-  const tier =
-    stats.coins >= 1000
-      ? { label: 'Whale', color: '#f5c542' }
-      : stats.coins >= 100
-        ? { label: 'Significant', color: '#35c5e0' }
-        : { label: 'Dust', color: '#57576a' };
-
-  // The label reflects the active LENS: Pools names the identity (Miner / Major
-  // pool / Satoshi); Wealth names the tier (Whale / Significant / Dust). Satoshi
-  // and the cluster stay special in both.
   const label = isCluster
     ? 'Satoshi · cluster'
     : stats.isSatoshi
       ? 'Satoshi · genesis'
-      : inWealth
-        ? tier.label
-        : stats.isMajor
-          ? 'Major pool'
-          : 'Miner';
-  const swatch =
-    isCluster || stats.isSatoshi ? hex(stats.color) : inWealth ? tier.color : hex(stats.color);
+      : stats.isMajor
+        ? 'Major pool'
+        : 'Miner';
 
   return (
     <div className="brass-panel rounded-lg p-5">
@@ -70,7 +52,7 @@ export function MinerInspector() {
         <div className="flex items-center gap-2">
           <span
             className="inline-block h-3 w-3 rounded-sm ring-1 ring-white/20"
-            style={{ backgroundColor: swatch }}
+            style={{ backgroundColor: hex(stats.color) }}
             aria-hidden
           />
           <span className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-brass-bright)]">

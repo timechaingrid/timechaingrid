@@ -84,8 +84,6 @@ export function CoinGridView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const currentBlock = useTimegridStore((s) => s.currentBlock);
-  const colorMode = useTimegridStore((s) => s.gridColorMode);
-  const setColorMode = useTimegridStore((s) => s.setGridColorMode);
   const satoshiCluster = useTimegridStore((s) => s.satoshiCluster);
   const setSatoshiCluster = useTimegridStore((s) => s.setSatoshiCluster);
   const [sub, setSub] = useState<CoinSubstrate | null>(null);
@@ -212,7 +210,6 @@ export function CoinGridView() {
       const highlightIdx = hoverMinerIdx !== -1 ? hoverMinerIdx : pinnedMinerIdx;
       const hl = highlightIdx !== -1;
       const frontierBlock = block - 144;
-      const wealthLens = useTimegridStore.getState().gridColorMode === 'wealth';
       const clusterOn = useTimegridStore.getState().satoshiCluster;
 
       for (let gy = gyLo; gy <= gyHi; gy += stride) {
@@ -224,11 +221,7 @@ export function CoinGridView() {
           // When the Satoshi cluster is on, the early single-address era is one
           // synthetic entity — paint it Satoshi-orange regardless of lens.
           const inCluster = clusterOn && b <= SATOSHI_CLUSTER_MAX_BLOCK;
-          let color = inCluster
-            ? SATOSHI_CLUSTER_COLOR
-            : wealthLens
-              ? substrate.minerWealthColor(idx)
-              : substrate.minerColor(idx);
+          let color = inCluster ? SATOSHI_CLUSTER_COLOR : substrate.minerColor(idx);
           let alpha = 1;
           if (hl) {
             const matches =
@@ -451,9 +444,6 @@ export function CoinGridView() {
         dirty = true;
       }
     });
-    const unsubMode = useTimegridStore.subscribe((state, prev) => {
-      if (state.gridColorMode !== prev.gridColorMode) dirty = true;
-    });
     const unsubCluster = useTimegridStore.subscribe((state, prev) => {
       if (state.satoshiCluster !== prev.satoshiCluster) {
         // Releasing the cluster while it's the focused entity clears the stale pin.
@@ -468,7 +458,6 @@ export function CoinGridView() {
       cancelled = true;
       unsubBlock();
       unsubSel();
-      unsubMode();
       unsubCluster();
       unsubCam();
       unsubPlay();
@@ -507,30 +496,8 @@ export function CoinGridView() {
         }}
       />
 
-      {/* Color-lens toggle — Pools (per-pool territory) ⇄ Wealth (each minter
-          classified whale/significant/dust by coins minted). Top-center, clear
-          of the BlockStats (left) and MinerInspector (right) panels. */}
+      {/* Satoshi cluster toggle + (i) info toast — docked beside Block Stats. */}
       <div className="pointer-events-auto absolute top-3 left-[296px] z-10 flex flex-col items-start gap-1">
-        <div className="flex items-center gap-2">
-        <div className="brass-panel text-mono flex items-center gap-0.5 rounded-full px-1 py-1 text-[10px] uppercase tracking-[0.16em]">
-          {(['pools', 'wealth'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setColorMode(m)}
-              aria-pressed={colorMode === m}
-              className={[
-                'rounded-full px-3 py-1 transition-colors',
-                colorMode === m
-                  ? 'bg-[color:var(--color-amber)]/20 text-[color:var(--color-amber)]'
-                  : 'text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text-secondary)]',
-              ].join(' ')}
-            >
-              {m === 'pools' ? 'Pools' : 'Wealth'}
-            </button>
-          ))}
-        </div>
-        {/* Satoshi cluster toggle + (i) info toast. */}
         <div className="brass-panel text-mono flex items-center gap-2 rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em]">
           <button
             type="button"
@@ -569,14 +536,6 @@ export function CoinGridView() {
             </span>
           </span>
         </div>
-        </div>
-        {colorMode === 'wealth' && (
-          <div className="text-mono flex items-center gap-2.5 rounded-full bg-[color:var(--color-background)]/85 px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
-            <Swatch color="#f5c542" label="whale ≥1k" />
-            <Swatch color="#35c5e0" label="sig ≥100" />
-            <Swatch color="#57576a" label="dust" />
-          </div>
-        )}
       </div>
 
       {/* Hover tooltip — the miner (coinbase recipient) of the hovered coin. */}
@@ -624,20 +583,6 @@ export function CoinGridView() {
         </span>
       </div>
     </div>
-  );
-}
-
-/** A tiny color chip + label for the wealth-lens legend. */
-function Swatch({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1">
-      <span
-        className="inline-block h-2 w-2 rounded-sm"
-        style={{ backgroundColor: color }}
-        aria-hidden
-      />
-      {label}
-    </span>
   );
 }
 

@@ -34,13 +34,6 @@ interface TimegridState {
   playbackSpeedIdx: number;
   setPlaybackSpeedIdx(idx: number): void;
 
-  // Grid coloring lens (Grid view only). 'pools' = each mining pool a distinct
-  // territory hue (issuance identity); 'wealth' = each minter classified by
-  // coins minted (whale / significant / dust) using the Graph's wealth palette.
-  // Two lenses on the same minter map — see CoinGridView + coinSubstrate.
-  gridColorMode: 'pools' | 'wealth';
-  setGridColorMode(mode: 'pools' | 'wealth'): void;
-
   // Opt-in: group the early single-address ("Patoshi") era into one synthetic
   // Satoshi entity (~1.1M BTC). Heuristic estimate — see the (i) toast on /grid.
   satoshiCluster: boolean;
@@ -95,11 +88,6 @@ export const useTimegridStore = create<TimegridState>((set, get) => ({
   playbackSpeedIdx: 0,
   setPlaybackSpeedIdx(idx) {
     set({ playbackSpeedIdx: Math.max(0, idx) });
-  },
-
-  gridColorMode: 'pools',
-  setGridColorMode(mode) {
-    set({ gridColorMode: mode });
   },
 
   satoshiCluster: false,

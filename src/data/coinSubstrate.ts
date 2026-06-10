@@ -130,25 +130,6 @@ const ACCENT_PALETTE: readonly number[] = [
 ];
 
 /**
- * Wealth-lens palette — the "holder filter over the minter": each minter is
- * classified by how many whole-BTC coins it minted, using the Graph's
- * whale/significant/dust semantics so the two sister views read consistently.
- * NOTE: this is wealth-by-ISSUANCE (coins minted), not current holdings —
- * transfer-tracking ownership is the v0.3 Cluster Lattice.
- */
-const WEALTH_WHALE = 0xf5c542; // gold   — minted ≥ 1000 BTC
-const WEALTH_SIGNIFICANT = 0x35c5e0; // cyan   — minted ≥ 100 BTC
-const WEALTH_DUST = 0x57576a; // grey   — minted < 100 BTC
-const WEALTH_WHALE_MIN = 1000;
-const WEALTH_SIGNIFICANT_MIN = 100;
-
-function wealthColor(coins: number): number {
-  if (coins >= WEALTH_WHALE_MIN) return WEALTH_WHALE;
-  if (coins >= WEALTH_SIGNIFICANT_MIN) return WEALTH_SIGNIFICANT;
-  return WEALTH_DUST;
-}
-
-/**
  * Quiet aged-bronze for the long tail of small miners — low saturation, low
  * lightness, with a touch of per-address variation (so the field has texture
  * rather than reading as one dead color), kept dark enough that the bright
@@ -174,8 +155,6 @@ export class CoinSubstrate {
   private _blockCount = new Uint32Array(0);
   /** minerIdx → 1 if a top-ranked "empire" pool (or Satoshi), else 0. */
   private _major = new Uint8Array(0);
-  /** minerIdx → color in the WEALTH lens (whale/significant/dust by coins minted). */
-  private _wealthColor = new Uint32Array(0);
   /** minerIdx → whole-BTC coins (tiles) that miner minted across its blocks. */
   private _coinsMinted = new Uint32Array(0);
   /** minerIdx → first / last block height that miner mined. */
@@ -214,12 +193,6 @@ export class CoinSubstrate {
   minerColor(idx: number): number {
     if (idx < 0 || idx >= this._color.length) return UNKNOWN_COLOR;
     return this._color[idx];
-  }
-  /** Wealth-lens color for a miner index — whale/significant/dust by coins
-   *  minted (the "holder filter over the minter"). */
-  minerWealthColor(idx: number): number {
-    if (idx < 0 || idx >= this._wealthColor.length) return UNKNOWN_COLOR;
-    return this._wealthColor[idx];
   }
   /** How many blocks this miner mined — the size of its pool empire. */
   minerBlockCount(idx: number): number {
@@ -362,17 +335,10 @@ export class CoinSubstrate {
       for (let r = 0; r < topCount; r++) rankOf[order[r]] = r;
       this._satoshiIdx = internSeen.get(SATOSHI_ADDRESS) ?? -1;
       this._major = new Uint8Array(n);
-      this._wealthColor = new Uint32Array(n);
 
       for (let i = 0; i < n; i++) {
         const addr = this._miners[i];
-        // Wealth lens: classify every minter (incl. Satoshi) by coins minted.
-        this._wealthColor[i] = i === this._satoshiIdx
-          ? SATOSHI_COLOR
-          : !addr
-            ? UNKNOWN_COLOR
-            : wealthColor(coins[i]);
-        // Pools lens: satoshi brass, top pools accented, long tail bronze.
+        // Satoshi brass centerpiece, top pools accented, long tail bronze.
         if (i === this._satoshiIdx) {
           this._color[i] = SATOSHI_COLOR; // brass centerpiece
           this._major[i] = 1;

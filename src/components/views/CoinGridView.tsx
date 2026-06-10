@@ -57,6 +57,10 @@ const DIM_ALPHA = 0.42;
 // cell count fits under this, so a full zoom-out of 19.9M coins still draws in
 // one cheap pass.
 const DRAW_BUDGET = 45_000;
+// Per-frame easing fraction for the auto-fit camera — the live camera moves this
+// share of the remaining distance to its target each frame (exponential ease-out
+// ≈ 0.3–0.5s settle at 60fps). Smaller = slower/smoother zoom-out.
+const CAMERA_LERP = 0.14;
 
 function shortAddr(a: string): string {
   if (!a) return '(no address)';
@@ -107,6 +111,10 @@ export function CoinGridView() {
     // miner (click). hover takes precedence; falls back to the pin when idle.
     let hoverMinerIdx = -1;
     let pinnedMinerIdx = -1;
+    // Smooth auto-fit: fitToMinted arms a camera TARGET; the ticker eases the
+    // live camera toward it each frame so the zoom-out tracks the growing grid
+    // continuously instead of snapping. null = settled / user-controlled.
+    let targetCam: { position: { x: number; y: number }; zoom: number } | null = null;
 
     const { setCurrentBlock, setLatestBlock, setCamera } = useTimegridStore.getState();
 
@@ -119,8 +127,9 @@ export function CoinGridView() {
     // Fit the minted region into the viewport, centered. Called on play-start
     // and (while playing) on each block so the camera zooms out as the lattice
     // grows — the signature "watch the map expand" motion. When paused the user
-    // owns the camera.
-    function fitToMinted() {
+    // owns the camera. By default it ARMS a target the ticker eases toward (so
+    // the zoom-out is smooth + continuous); `instant` snaps (first-paint only).
+    function fitToMinted(instant = false) {
       if (!appReady || !substrate) return;
       const block = useTimegridStore.getState().currentBlock;
       const total = cumulativeCoins(block);
@@ -129,9 +138,38 @@ export function CoinGridView() {
       const radiusPx = ring * CELL_SIZE;
       const viewportSize = Math.min(app.screen.width, app.screen.height);
       const fitZoom = Math.min(6, Math.max(0.02, (viewportSize / (2 * radiusPx)) * 0.82));
-      setCamera({
+      const target = {
         position: { x: app.screen.width / 2, y: app.screen.height / 2 },
         zoom: fitZoom,
+      };
+      if (instant) {
+        targetCam = null;
+        setCamera(target);
+      } else {
+        targetCam = target; // ticker eases the live camera toward it
+      }
+    }
+
+    // Ease the live camera one frame toward targetCam (exponential ease-out).
+    // Driven by the ticker while a target is armed; commits to the store each
+    // frame so hover/pan math + drawGrid all read a consistent camera. Snaps and
+    // clears the target once within a sub-pixel / sub-permille threshold. As the
+    // grid grows during playback the target recedes every block, so the camera
+    // continuously chases it — a smooth, tracking zoom-out rather than a snap.
+    function stepCameraAnimation() {
+      if (!targetCam) return;
+      const cam = useTimegridStore.getState().camera;
+      const dx = targetCam.position.x - cam.position.x;
+      const dy = targetCam.position.y - cam.position.y;
+      const dz = targetCam.zoom - cam.zoom;
+      if (Math.abs(dz) <= targetCam.zoom * 0.002 && Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+        setCamera(targetCam);
+        targetCam = null;
+        return;
+      }
+      setCamera({
+        position: { x: cam.position.x + dx * CAMERA_LERP, y: cam.position.y + dy * CAMERA_LERP },
+        zoom: cam.zoom + dz * CAMERA_LERP,
       });
     }
 
@@ -279,10 +317,10 @@ export function CoinGridView() {
       viewport.addChild(gridG);
       app.stage.addChild(viewport);
 
-      // Fresh camera → fit the full minted grid on first paint.
+      // Fresh camera → fit the full minted grid on first paint (snap, no ease).
       const initCam = useTimegridStore.getState().camera;
       if (initCam.position.x === 0 && initCam.position.y === 0 && initCam.zoom === 1) {
-        fitToMinted();
+        fitToMinted(true);
       }
       applyCamera();
 
@@ -291,6 +329,7 @@ export function CoinGridView() {
 
       app.stage.on('pointerdown', (e) => {
         isPanning = true;
+        targetCam = null; // grabbing the camera cancels any in-flight auto-fit
         panStart = { x: e.global.x, y: e.global.y };
         panStartCam = { ...useTimegridStore.getState().camera.position };
         app.canvas.style.cursor = 'grabbing';
@@ -380,6 +419,7 @@ export function CoinGridView() {
 
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
+        targetCam = null; // manual zoom cancels any in-flight auto-fit
         const cam = useTimegridStore.getState().camera;
         // Zoom toward the cursor: keep the world point under the pointer fixed.
         const delta = -event.deltaY * 0.0015;
@@ -400,6 +440,7 @@ export function CoinGridView() {
       // Redraw only when dirty — the ticker is cheap when idle, and a redraw
       // rebuilds up to DRAW_BUDGET rects (sub-frame even at Max playback).
       app.ticker.add(() => {
+        if (targetCam) stepCameraAnimation(); // eases the camera; setCamera marks dirty
         if (!dirty) return;
         dirty = false;
         drawGrid();
@@ -409,11 +450,11 @@ export function CoinGridView() {
 
     const unsubBlock = useTimegridStore.subscribe((state, prev) => {
       if (state.currentBlock !== prev.currentBlock) {
-        // While playing, follow the growth — but ONLY snap when the grid has
-        // outgrown the viewport. If the user is zoomed out enough that the
-        // whole grid still fits on screen, leave the camera where it is (no
-        // per-block re-center). When zoomed in past the grid's extent, snap
-        // back to hold the entire grid.
+        // While playing, follow the growth — but only re-arm the fit when the
+        // grid has outgrown the viewport. If the user is zoomed out enough that
+        // the whole grid still fits, leave the camera alone (no per-block
+        // re-center). When it overflows, the ticker smoothly eases the camera
+        // out to keep holding the whole grid as it grows.
         if (state.playbackPlaying && !gridFitsViewport()) fitToMinted();
         dirty = true;
       }
@@ -426,8 +467,10 @@ export function CoinGridView() {
     });
     const unsubPlay = useTimegridStore.subscribe((state, prev) => {
       if (!prev.playbackPlaying && state.playbackPlaying) {
-        fitToMinted();
+        fitToMinted(); // smooth ease into frame on play
         dirty = true;
+      } else if (prev.playbackPlaying && !state.playbackPlaying) {
+        targetCam = null; // pausing hands the camera back to the user immediately
       }
     });
     // Keep the empire highlight in lockstep with the focused miner — whether the

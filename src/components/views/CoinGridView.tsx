@@ -8,7 +8,14 @@ import {
   blockOfCoinIndex,
   ringForCount,
 } from '@/lib/coinGrid';
-import { loadCoinSubstrate, type CoinSubstrate } from '@/data/coinSubstrate';
+import {
+  loadCoinSubstrate,
+  type CoinSubstrate,
+  SATOSHI_CLUSTER_KEY,
+  SATOSHI_CLUSTER_MAX_BLOCK,
+  SATOSHI_CLUSTER_COLOR,
+  SATOSHI_CLUSTER_IDX,
+} from '@/data/coinSubstrate';
 import { useTimegridStore } from '@/store/timegridStore';
 import { BRAND_TAGLINE } from '@/lib/site-config';
 
@@ -32,18 +39,24 @@ import { BRAND_TAGLINE } from '@/lib/site-config';
 
 const CELL_SIZE = 6; // world px per coin cell at zoom 1.0
 const BACKGROUND = 0x08080c;
-const HALVING_RING = 0xffd700; // gold epoch boundary
-const FRONTIER_RING = 0xf5a623; // amber — the just-minted outer edge
 
-// LOD: aim for each DRAWN block to cover ~this many device px. When zoom shrinks
-// a cell below this, we stride (aggregate stride×stride coins into one rect).
-const LOD_TARGET_PX = 1.1;
+// LOD: each DRAWN block should be at least this many device px. As zoom shrinks
+// cells below this, we stride (aggregate stride×stride coins into one tile) so
+// tiles stay chunky-and-spaced rather than collapsing into a fine solid mesh.
+// Bigger value ⇒ pixellates sooner / sparser.
+const LOD_MIN_TILE_PX = 8;
+// Grout: fraction of each tile's span left as the dark gap between tiles. Kept
+// PROPORTIONAL so the empty spaces survive at every LOD level — whether a tile
+// is one coin (zoomed in) or an aggregated block of hundreds (zoomed out).
+const GROUT_FRAC = 0.16;
+// When an empire is highlighted, the rest of the field recedes to this alpha —
+// dimmed but still clearly visible, so focusing a SMALL miner doesn't black out
+// the whole map.
+const DIM_ALPHA = 0.42;
 // Hard ceiling on rects per redraw — the stride is bumped until the visible
 // cell count fits under this, so a full zoom-out of 19.9M coins still draws in
 // one cheap pass.
 const DRAW_BUDGET = 45_000;
-
-const SATOSHI_RING_COLOR = 0xc28840;
 
 function shortAddr(a: string): string {
   if (!a) return '(no address)';
@@ -71,6 +84,10 @@ export function CoinGridView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const currentBlock = useTimegridStore((s) => s.currentBlock);
+  const colorMode = useTimegridStore((s) => s.gridColorMode);
+  const setColorMode = useTimegridStore((s) => s.setGridColorMode);
+  const satoshiCluster = useTimegridStore((s) => s.satoshiCluster);
+  const setSatoshiCluster = useTimegridStore((s) => s.setSatoshiCluster);
   const [sub, setSub] = useState<CoinSubstrate | null>(null);
 
   useEffect(() => {
@@ -84,11 +101,14 @@ export function CoinGridView() {
 
     const viewport = new Container();
     const gridG = new Graphics(); // the tiles
-    const ringsG = new Graphics(); // halving + frontier rings
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let panStartCam = { x: 0, y: 0 };
     let substrate: CoinSubstrate | null = null;
+    // Empire-reveal highlight: the miner under the cursor (hover) and a pinned
+    // miner (click). hover takes precedence; falls back to the pin when idle.
+    let hoverMinerIdx = -1;
+    let pinnedMinerIdx = -1;
 
     const { setCurrentBlock, setLatestBlock, setCamera } = useTimegridStore.getState();
 
@@ -117,6 +137,20 @@ export function CoinGridView() {
       });
     }
 
+    // Does the whole minted grid currently fit inside the viewport? Drives the
+    // auto-fit decision during playback: only re-fit (snap to hold the entire
+    // grid) once the grid has grown to OVERFLOW the screen. While it still fits
+    // — i.e. the user is zoomed out far enough to see all of it — leave the
+    // camera alone so playback doesn't yank it back to center every block.
+    function gridFitsViewport(): boolean {
+      if (!appReady) return true;
+      const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
+      if (total <= 0) return true;
+      const R = (ringForCount(total) + 0.5) * CELL_SIZE;
+      const gridPx = 2 * R * useTimegridStore.getState().camera.zoom;
+      return gridPx <= Math.min(app.screen.width, app.screen.height);
+    }
+
     // The heart: iterate visible cells, invert to coins, draw. Bounded by the
     // draw budget via an adaptive stride; clamped to the minted ring so we never
     // sweep empty space when zoomed out.
@@ -126,7 +160,6 @@ export function CoinGridView() {
       const block = useTimegridStore.getState().currentBlock;
       const total = cumulativeCoins(block);
       gridG.clear();
-      ringsG.clear();
       if (total <= 0 || cam.zoom <= 0) return;
 
       const maxRing = ringForCount(total);
@@ -144,10 +177,11 @@ export function CoinGridView() {
       const gyHi = Math.min(maxRing, Math.ceil(worldBottom / CELL_SIZE) + 1);
       if (gxHi < gxLo || gyHi < gyLo) return;
 
-      // LOD stride: each drawn block ≈ LOD_TARGET_PX device px; then bump until
-      // the visible cell count fits the draw budget.
+      // LOD stride: keep each drawn block ≥ LOD_MIN_TILE_PX device px (so tiles
+      // stay chunky + spaced, never a fine mesh); then bump further if needed to
+      // fit the draw budget.
       const effCell = CELL_SIZE * cam.zoom;
-      let stride = Math.max(1, Math.round(LOD_TARGET_PX / effCell));
+      let stride = Math.max(1, Math.ceil(LOD_MIN_TILE_PX / effCell));
       const cellsX = (gxHi - gxLo) / stride + 1;
       const cellsY = (gyHi - gyLo) / stride + 1;
       if (cellsX * cellsY > DRAW_BUDGET) {
@@ -161,9 +195,25 @@ export function CoinGridView() {
 
       const span = stride * CELL_SIZE;
       const half = CELL_SIZE / 2;
-      // Recent-frontier emphasis: coins minted within the last ~day of the
-      // scrubber position glow slightly brighter to mark "the growing edge".
+
+      // Mosaic grout — PROPORTIONAL to the tile span, so the empty spaces are
+      // part of the LOD: they persist whether a tile is one coin (zoomed in) or
+      // an aggregated block of hundreds (zoomed out). Rounded corners only once
+      // a drawn block is big enough on screen for the rounding to read.
+      const drawnPx = stride * effCell; // on-screen size of one drawn block
+      const gap = span * GROUT_FRAC;
+      const tile = span - 2 * gap;
+      const radius = drawnPx >= 6 ? tile * 0.22 : 0;
+
+      // Empire reveal: when a miner is hovered (or pinned) its tiles stay bright
+      // and everything else recedes — the pool's whole territory lights up
+      // across every ring it owns. Idle (no highlight): muted field + bright
+      // empires, with the growing frontier glowing.
+      const highlightIdx = hoverMinerIdx !== -1 ? hoverMinerIdx : pinnedMinerIdx;
+      const hl = highlightIdx !== -1;
       const frontierBlock = block - 144;
+      const wealthLens = useTimegridStore.getState().gridColorMode === 'wealth';
+      const clusterOn = useTimegridStore.getState().satoshiCluster;
 
       for (let gy = gyLo; gy <= gyHi; gy += stride) {
         for (let gx = gxLo; gx <= gxHi; gx += stride) {
@@ -171,40 +221,30 @@ export function CoinGridView() {
           if (n < 0 || n >= total) continue;
           const b = blockOfCoinIndex(n);
           const idx = substrate.minerIdxAt(b);
-          let color = substrate.minerColor(idx);
-          // Frontier coins brightened; everything else true pool color.
-          if (b >= frontierBlock) {
-            color = lighten(color, 0.35);
+          // When the Satoshi cluster is on, the early single-address era is one
+          // synthetic entity — paint it Satoshi-orange regardless of lens.
+          const inCluster = clusterOn && b <= SATOSHI_CLUSTER_MAX_BLOCK;
+          let color = inCluster
+            ? SATOSHI_CLUSTER_COLOR
+            : wealthLens
+              ? substrate.minerWealthColor(idx)
+              : substrate.minerColor(idx);
+          let alpha = 1;
+          if (hl) {
+            const matches =
+              highlightIdx === SATOSHI_CLUSTER_IDX ? inCluster : !inCluster && idx === highlightIdx;
+            if (matches) color = lighten(color, 0.3);
+            else alpha = DIM_ALPHA; // recede but stay visible
+          } else if (b >= frontierBlock) {
+            color = lighten(color, 0.3); // growing edge glows
           }
-          const x0 = gx * CELL_SIZE - half;
-          const y0 = gy * CELL_SIZE - half;
-          gridG.rect(x0, y0, span, span).fill(color);
+          const x0 = gx * CELL_SIZE - half + gap;
+          const y0 = gy * CELL_SIZE - half + gap;
+          if (radius > 0) gridG.roundRect(x0, y0, tile, tile, radius);
+          else gridG.rect(x0, y0, tile, tile);
+          gridG.fill({ color, alpha });
         }
       }
-
-      // Halving epoch rings: a square outline at the spiral radius reached by
-      // each halving boundary that has occurred by `block`.
-      const epoch = Math.floor(block / 210_000);
-      for (let k = 1; k <= epoch; k++) {
-        const coinsBefore = cumulativeCoins(210_000 * k - 1);
-        const ring = ringForCount(coinsBefore);
-        if (ring <= 0 || ring > maxRing) continue;
-        const r = ring * CELL_SIZE + half;
-        ringsG
-          .rect(-r, -r, 2 * r, 2 * r)
-          .stroke({ width: Math.max(1, 1.5 / cam.zoom), color: HALVING_RING, alpha: 0.5 });
-      }
-      // Frontier ring — the outer edge of the currently-minted region.
-      const fr = maxRing * CELL_SIZE + half;
-      ringsG
-        .rect(-fr, -fr, 2 * fr, 2 * fr)
-        .stroke({ width: Math.max(1, 1.5 / cam.zoom), color: FRONTIER_RING, alpha: 0.35 });
-      // Satoshi origin marker — a small brass square at dead center so the
-      // genesis is always findable even at full zoom-out.
-      const oc = CELL_SIZE * 1.5;
-      ringsG
-        .rect(-oc, -oc, 2 * oc, 2 * oc)
-        .stroke({ width: Math.max(1, 1.5 / cam.zoom), color: SATOSHI_RING_COLOR, alpha: 0.8 });
     }
 
     function pixelToCell(globalX: number, globalY: number): { gx: number; gy: number } {
@@ -232,7 +272,7 @@ export function CoinGridView() {
       await app.init({
         resizeTo: container,
         background: BACKGROUND,
-        antialias: false, // square tiles; AA buys nothing and costs fill-rate
+        antialias: true, // soften tile edges + rounded mosaic corners
         resolution: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
         autoDensity: true,
       });
@@ -244,7 +284,6 @@ export function CoinGridView() {
       appReady = true;
 
       viewport.addChild(gridG);
-      viewport.addChild(ringsG);
       app.stage.addChild(viewport);
 
       // Fresh camera → fit the full minted grid on first paint.
@@ -265,11 +304,10 @@ export function CoinGridView() {
       });
       app.stage.on('pointermove', (e) => {
         if (isPanning) {
+          // Panning the map does NOT pause playback — the scrubber keeps
+          // advancing while the user drags around to explore.
           const dx = e.global.x - panStart.x;
           const dy = e.global.y - panStart.y;
-          if (Math.abs(dx) + Math.abs(dy) > 3) {
-            useTimegridStore.getState().setPlaybackPlaying(false);
-          }
           const cam = useTimegridStore.getState().camera;
           setCamera({ position: { x: panStartCam.x + dx, y: panStartCam.y + dy }, zoom: cam.zoom });
           return;
@@ -282,29 +320,70 @@ export function CoinGridView() {
         const total = cumulativeCoins(block);
         if (n >= 0 && n < total) {
           const b = blockOfCoinIndex(n);
+          const inCluster =
+            useTimegridStore.getState().satoshiCluster && b <= SATOSHI_CLUSTER_MAX_BLOCK;
           const idx = substrate.minerIdxAt(b);
+          const hIdx = inCluster ? SATOSHI_CLUSTER_IDX : idx;
+          if (hIdx !== hoverMinerIdx) {
+            hoverMinerIdx = hIdx; // ignite this empire (or the whole cluster)
+            dirty = true;
+          }
           // Clamp here (reading container size is fine in an event handler).
           const cw = container.clientWidth;
+          const cs = inCluster ? substrate.satoshiClusterStats() : null;
           setHover({
             left: Math.min(e.global.x + 14, Math.max(8, cw - 270)),
             top: e.global.y + 14,
-            addr: substrate.minerAddr(idx),
-            blocks: substrate.minerBlockCount(idx),
+            addr: cs ? `Satoshi cluster · ~${cs.blocks.toLocaleString()} wallets` : substrate.minerAddr(idx),
+            blocks: cs ? cs.blocks : substrate.minerBlockCount(idx),
             block: b,
             date: formatDate(substrate.blockTime(b)),
-            isSatoshi: substrate.isSatoshi(idx),
+            isSatoshi: cs ? true : substrate.isSatoshi(idx),
           });
         } else {
+          if (hoverMinerIdx !== -1) {
+            hoverMinerIdx = -1;
+            dirty = true;
+          }
           setHover(null);
         }
       });
-      const endPan = () => {
+      const endPan = (e: { global: { x: number; y: number } }) => {
+        const moved =
+          Math.abs(e.global.x - panStart.x) + Math.abs(e.global.y - panStart.y);
         isPanning = false;
         app.canvas.style.cursor = '';
+        // A tap (negligible movement) pins/unpins the empire under the cursor,
+        // so its territory stays lit without holding the hover.
+        if (moved < 3 && substrate) {
+          const { gx, gy } = pixelToCell(e.global.x, e.global.y);
+          const n = inverseSpiral(gx, gy);
+          const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
+          const store = useTimegridStore.getState();
+          if (n >= 0 && n < total) {
+            const b = blockOfCoinIndex(n);
+            const inCluster = store.satoshiCluster && b <= SATOSHI_CLUSTER_MAX_BLOCK;
+            const key = inCluster
+              ? SATOSHI_CLUSTER_KEY
+              : substrate.minerAddr(substrate.minerIdxAt(b));
+            // Toggle focus: click the focused miner again to release it. Opens
+            // the inspector panel. pinnedMinerIdx + redraw follow the
+            // selectedWallet subscription below.
+            store.setSelectedWallet(store.selectedWallet === key ? null : key);
+          } else {
+            store.setSelectedWallet(null); // click empty space → release focus
+          }
+        }
       };
       app.stage.on('pointerup', endPan);
       app.stage.on('pointerupoutside', endPan);
-      app.canvas.addEventListener('pointerleave', () => setHover(null));
+      app.canvas.addEventListener('pointerleave', () => {
+        if (hoverMinerIdx !== -1) {
+          hoverMinerIdx = -1;
+          dirty = true;
+        }
+        setHover(null);
+      });
 
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
@@ -337,9 +416,12 @@ export function CoinGridView() {
 
     const unsubBlock = useTimegridStore.subscribe((state, prev) => {
       if (state.currentBlock !== prev.currentBlock) {
-        // While playing, follow the growth (zoom out as the grid expands);
-        // when paused, the user owns the camera and we just redraw.
-        if (state.playbackPlaying) fitToMinted();
+        // While playing, follow the growth — but ONLY snap when the grid has
+        // outgrown the viewport. If the user is zoomed out enough that the
+        // whole grid still fits on screen, leave the camera where it is (no
+        // per-block re-center). When zoomed in past the grid's extent, snap
+        // back to hold the entire grid.
+        if (state.playbackPlaying && !gridFitsViewport()) fitToMinted();
         dirty = true;
       }
     });
@@ -355,10 +437,39 @@ export function CoinGridView() {
         dirty = true;
       }
     });
+    // Keep the empire highlight in lockstep with the focused miner — whether the
+    // selection changed from a canvas click or the inspector's release button.
+    const unsubSel = useTimegridStore.subscribe((state, prev) => {
+      if (state.selectedWallet !== prev.selectedWallet) {
+        pinnedMinerIdx = !state.selectedWallet
+          ? -1
+          : state.selectedWallet === SATOSHI_CLUSTER_KEY
+            ? SATOSHI_CLUSTER_IDX
+            : substrate
+              ? substrate.idxOf(state.selectedWallet)
+              : -1;
+        dirty = true;
+      }
+    });
+    const unsubMode = useTimegridStore.subscribe((state, prev) => {
+      if (state.gridColorMode !== prev.gridColorMode) dirty = true;
+    });
+    const unsubCluster = useTimegridStore.subscribe((state, prev) => {
+      if (state.satoshiCluster !== prev.satoshiCluster) {
+        // Releasing the cluster while it's the focused entity clears the stale pin.
+        if (!state.satoshiCluster && state.selectedWallet === SATOSHI_CLUSTER_KEY) {
+          useTimegridStore.getState().setSelectedWallet(null);
+        }
+        dirty = true;
+      }
+    });
 
     return () => {
       cancelled = true;
       unsubBlock();
+      unsubSel();
+      unsubMode();
+      unsubCluster();
       unsubCam();
       unsubPlay();
       if (appReady) {
@@ -384,6 +495,90 @@ export function CoinGridView() {
       className="relative h-full w-full cursor-grab active:cursor-grabbing"
       aria-label="Timechain Grid — every Bitcoin rendered as a tile on a deterministic spiral, colored by the mining pool that minted it. Drag to pan, scroll to zoom, hover a tile to see its miner."
     >
+      {/* Radial vignette — darkens the periphery so the lattice reads with
+          depth instead of as a flat pixel sheet. Sits above the canvas, below
+          the HUD; transparent center keeps the active region crisp. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1]"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, transparent 50%, rgba(4,4,8,0.78) 100%)',
+        }}
+      />
+
+      {/* Color-lens toggle — Pools (per-pool territory) ⇄ Wealth (each minter
+          classified whale/significant/dust by coins minted). Top-center, clear
+          of the BlockStats (left) and MinerInspector (right) panels. */}
+      <div className="pointer-events-auto absolute top-3 left-[296px] z-10 flex flex-col items-start gap-1">
+        <div className="flex items-center gap-2">
+        <div className="brass-panel text-mono flex items-center gap-0.5 rounded-full px-1 py-1 text-[10px] uppercase tracking-[0.16em]">
+          {(['pools', 'wealth'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setColorMode(m)}
+              aria-pressed={colorMode === m}
+              className={[
+                'rounded-full px-3 py-1 transition-colors',
+                colorMode === m
+                  ? 'bg-[color:var(--color-amber)]/20 text-[color:var(--color-amber)]'
+                  : 'text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text-secondary)]',
+              ].join(' ')}
+            >
+              {m === 'pools' ? 'Pools' : 'Wealth'}
+            </button>
+          ))}
+        </div>
+        {/* Satoshi cluster toggle + (i) info toast. */}
+        <div className="brass-panel text-mono flex items-center gap-2 rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em]">
+          <button
+            type="button"
+            onClick={() => setSatoshiCluster(!satoshiCluster)}
+            aria-pressed={satoshiCluster}
+            className={[
+              'flex items-center gap-1.5 rounded-full px-2 py-0.5 transition-colors',
+              satoshiCluster
+                ? 'text-[color:var(--color-amber)]'
+                : 'text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text-secondary)]',
+            ].join(' ')}
+          >
+            <span
+              aria-hidden
+              className={[
+                'inline-block h-2.5 w-2.5 rounded-full border',
+                satoshiCluster
+                  ? 'border-[color:var(--color-amber)] bg-[color:var(--color-amber)]'
+                  : 'border-[color:var(--color-text-muted)]',
+              ].join(' ')}
+            />
+            Satoshi cluster
+          </button>
+          <span className="group relative inline-flex">
+            <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[color:var(--color-text-muted)] text-[9px] lowercase text-[color:var(--color-text-muted)]">
+              i
+            </span>
+            <span className="pointer-events-none absolute top-6 left-1/2 z-30 hidden w-[280px] -translate-x-1/2 rounded-md border border-[color:var(--color-card-border)] bg-[color:var(--color-background)]/95 p-3 text-left text-[10px] leading-relaxed tracking-normal text-[color:var(--color-text-secondary)] normal-case shadow-xl group-hover:block">
+              <b className="text-[color:var(--color-amber)]">Satoshi cluster (estimate).</b>{' '}
+              In Bitcoin&apos;s first ~2 years, Satoshi mined thousands of blocks — 50&nbsp;BTC
+              each — using a fresh address for nearly every block, so on-chain they look like
+              ~22,000 unrelated wallets. The famous ~1.1M&nbsp;BTC stash is inferred from the{' '}
+              <i>Patoshi</i> nonce pattern, not recorded on-chain. This groups that early
+              single-address era into one synthetic Satoshi entity (~1.1M&nbsp;BTC) — a heuristic
+              estimate, not ground truth.
+            </span>
+          </span>
+        </div>
+        </div>
+        {colorMode === 'wealth' && (
+          <div className="text-mono flex items-center gap-2.5 rounded-full bg-[color:var(--color-background)]/85 px-2.5 py-1 text-[9px] uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
+            <Swatch color="#f5c542" label="whale ≥1k" />
+            <Swatch color="#35c5e0" label="sig ≥100" />
+            <Swatch color="#57576a" label="dust" />
+          </div>
+        )}
+      </div>
+
       {/* Hover tooltip — the miner (coinbase recipient) of the hovered coin. */}
       {hover && (
         <div
@@ -412,7 +607,7 @@ export function CoinGridView() {
       {/* Bottom-left brand tagline + cumulative coin counter. */}
       <div
         aria-hidden
-        className="text-mono pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]"
+        className="text-mono pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]"
       >
         <span className="tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen">
           {BRAND_TAGLINE}
@@ -424,8 +619,25 @@ export function CoinGridView() {
           </span>{' '}
           / {totalCoins.toLocaleString()}
         </span>
+        <span className="normal-case tracking-normal text-[9px] text-[color:var(--color-text-muted)]/70">
+          hover a tile → reveal its empire · click to pin
+        </span>
       </div>
     </div>
+  );
+}
+
+/** A tiny color chip + label for the wealth-lens legend. */
+function Swatch({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span
+        className="inline-block h-2 w-2 rounded-sm"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      {label}
+    </span>
   );
 }
 

@@ -74,7 +74,7 @@ export function BlockStats() {
   return (
     <div className="brass-panel rounded-lg p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-brass-bright)]">
+        <span className="text-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-brass-bright)]">
           Block stats
         </span>
         {isHalving && (
@@ -89,13 +89,13 @@ export function BlockStats() {
 
       {ready ? (
         <>
-          <p className="text-display mt-3 text-3xl font-semibold leading-none text-[color:var(--color-text-primary)]">
+          <p className="text-display mt-3 text-4xl font-semibold leading-none text-[color:var(--color-text-primary)]">
             {currentBlock.toLocaleString()}
           </p>
-          <p className="mt-1 text-mono text-xs text-[color:var(--color-text-muted)]">
+          <p className="mt-1.5 text-mono text-sm text-[color:var(--color-text-muted)]">
             epoch {epoch} · {halvings} {halvings === 1 ? 'halving' : 'halvings'} crossed
           </p>
-          <dl className="mt-4 grid grid-cols-2 gap-3 text-mono text-xs">
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-mono text-sm">
             <Field label="Block subsidy" value={`${subsidy} BTC`} />
             <Field label="Issued so far" value={`${formatBtc(issued)} BTC`} />
             <Field
@@ -119,7 +119,7 @@ export function BlockStats() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wider text-[color:var(--color-text-muted)]">
+      <dt className="text-[11px] uppercase tracking-wider text-[color:var(--color-text-muted)]">
         {label}
       </dt>
       <dd className="mt-1 text-[color:var(--color-text-primary)]">{value}</dd>

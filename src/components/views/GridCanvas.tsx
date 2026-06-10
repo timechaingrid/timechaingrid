@@ -16,6 +16,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { loadCoinSubstrate } from '@/data/coinSubstrate';
 import { useTimegridStore } from '@/store/timegridStore';
 import { BlockStats } from '@/components/BlockStats';
+import { MinerInspector } from '@/components/MinerInspector';
 import { Scrubber } from '@/components/Scrubber';
 import { Playback } from '@/components/Playback';
 
@@ -72,6 +73,13 @@ export function GridCanvas() {
       <div className="pointer-events-none absolute top-3 left-3 z-10 hidden w-[280px] max-w-[calc(100vw-1.5rem)] lg:block">
         <div className="pointer-events-auto">
           <BlockStats />
+        </div>
+      </div>
+
+      {/* Miner inspector — appears top-right when a tile/empire is clicked (lg+). */}
+      <div className="pointer-events-none absolute top-3 right-3 z-10 hidden w-[300px] max-w-[calc(100vw-1.5rem)] lg:block">
+        <div className="pointer-events-auto">
+          <MinerInspector />
         </div>
       </div>
 

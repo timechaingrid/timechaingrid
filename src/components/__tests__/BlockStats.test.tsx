@@ -33,14 +33,14 @@ describe('<BlockStats>', () => {
     // 630_000 / 2016 = epoch 312
     expect(getByText(/epoch 312/)).toBeTruthy();
     // 630_000 / 210_000 = 3 halvings crossed
-    expect(getByText(/3 halvings crossed/)).toBeTruthy();
+    expect(getByText(/3 halvings/)).toBeTruthy();
   });
 
   it('singularises 1 halving', () => {
     useTimegridStore.getState().setLatestBlock(876_000);
     useTimegridStore.getState().setCurrentBlock(300_000);
     const { getByText } = render(<BlockStats />);
-    expect(getByText(/1 halving crossed/)).toBeTruthy();
+    expect(getByText(/1 halving$/m)).toBeTruthy();
   });
 
   it('badges halving blocks (210k multiples)', () => {

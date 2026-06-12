@@ -38,6 +38,16 @@ interface TimegridState {
   // Satoshi entity (~1.1M BTC). Heuristic estimate — see the (i) toast on /grid.
   satoshiCluster: boolean;
   setSatoshiCluster(on: boolean): void;
+
+  /**
+   * Live chain tip from our same-origin /api/tip relay (height + the tip
+   * block's mined timestamp, unix seconds). null until the first poll lands.
+   * DISPLAY-ONLY: never extends latestBlock / currentBlock (the navigable
+   * range is bounded by the data bundle). Written by useLiveTip; read by
+   * LiveTipPanel.
+   */
+  liveTip: { height: number; timestamp: number | null } | null;
+  setLiveTip(tip: { height: number; timestamp: number | null }): void;
 }
 
 const INITIAL_BLOCK = 0;
@@ -93,5 +103,10 @@ export const useTimegridStore = create<TimegridState>((set, get) => ({
   satoshiCluster: false,
   setSatoshiCluster(on) {
     set({ satoshiCluster: on });
+  },
+
+  liveTip: null,
+  setLiveTip(tip) {
+    set({ liveTip: tip });
   },
 }));

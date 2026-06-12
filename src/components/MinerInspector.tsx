@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTimegridStore } from '@/store/timegridStore';
 import { getLoadedCoinSubstrate, SATOSHI_CLUSTER_KEY } from '@/data/coinSubstrate';
 
@@ -30,11 +31,25 @@ export function MinerInspector() {
   const selected = useTimegridStore((s) => s.selectedWallet);
   const setSelected = useTimegridStore((s) => s.setSelectedWallet);
   const latestBlock = useTimegridStore((s) => s.latestBlock);
+  const [collapsed, setCollapsed] = useState(false);
 
   if (!selected) return null;
   const sub = getLoadedCoinSubstrate();
   const stats = sub?.minerStats(selected);
   if (!sub || !stats) return null;
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        aria-label="Restore inspector"
+        className="brass-panel text-mono ml-auto block rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-secondary)] transition-colors hover:text-[color:var(--color-gold)]"
+      >
+        ◧ Inspector
+      </button>
+    );
+  }
 
   const isCluster = selected === SATOSHI_CLUSTER_KEY;
   const sharePct = latestBlock > 0 ? (stats.blocks / (latestBlock + 1)) * 100 : 0;
@@ -59,14 +74,24 @@ export function MinerInspector() {
             {label}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => setSelected(null)}
-          aria-label="Release focus"
-          className="text-mono text-[10px] uppercase tracking-wider text-[color:var(--color-text-muted)] transition-colors hover:text-[color:var(--color-amber)]"
-        >
-          ✕ release
-        </button>
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelected(null)}
+            aria-label="Release focus"
+            className="text-mono text-[10px] uppercase tracking-wider text-[color:var(--color-text-muted)] transition-colors hover:text-[color:var(--color-amber)]"
+          >
+            release
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            aria-label="Minimize inspector"
+            className="text-mono -mr-1 rounded px-1 text-sm leading-none text-[color:var(--color-text-muted)] transition-colors hover:text-[color:var(--color-gold)]"
+          >
+            ✕
+          </button>
+        </span>
       </div>
 
       <p className="text-mono mt-3 break-all text-xs text-[color:var(--color-text-primary)]">

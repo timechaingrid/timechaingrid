@@ -14,6 +14,8 @@
  */
 import { useEffect, useState, type ComponentType } from 'react';
 import { loadCoinSubstrate } from '@/data/coinSubstrate';
+import { useLiveTip } from '@/data/liveTip';
+import { LiveTipPanel } from '@/components/LiveTipPanel';
 import { useTimegridStore } from '@/store/timegridStore';
 import { BlockStats } from '@/components/BlockStats';
 import { MinerInspector } from '@/components/MinerInspector';
@@ -23,6 +25,8 @@ import { Playback } from '@/components/Playback';
 export function GridCanvas() {
   const [Grid, setGrid] = useState<ComponentType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Live chain-tip polling (same-origin relay) — display-only, feeds LiveTipPanel.
+  useLiveTip();
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +74,7 @@ export function GridCanvas() {
       </div>
 
       {/* Block stats — timeline position (date, epoch, halvings) top-left (lg+). */}
-      <div className="pointer-events-none absolute top-3 left-3 z-10 hidden w-[280px] max-w-[calc(100vw-1.5rem)] lg:block">
+      <div className="pointer-events-none absolute top-3 left-3 z-10 hidden w-[200px] max-w-[calc(100vw-1.5rem)] lg:block">
         <div className="pointer-events-auto">
           <BlockStats />
         </div>
@@ -82,6 +86,9 @@ export function GridCanvas() {
           <MinerInspector />
         </div>
       </div>
+
+      {/* Live chain-tail HUD — bottom-right, display-only. */}
+      <LiveTipPanel />
 
       {/* Bottom: scrubber + playback (block 0 → tip). The strip captures pointer
           events so interacting with it never reaches the canvas behind it. */}

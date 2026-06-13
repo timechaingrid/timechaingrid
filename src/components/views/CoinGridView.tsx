@@ -106,6 +106,8 @@ export function CoinGridView() {
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let panStartCam = { x: 0, y: 0 };
+    let isPinching = false;
+    let lastPinchDist = 0;
     let substrate: CoinSubstrate | null = null;
     // Empire-reveal highlight: the miner under the cursor (hover) and a pinned
     // miner (click). hover takes precedence; falls back to the pin when idle.
@@ -328,6 +330,7 @@ export function CoinGridView() {
       app.stage.hitArea = { contains: () => true };
 
       app.stage.on('pointerdown', (e) => {
+        if (isPinching) return;
         isPanning = true;
         targetCam = null; // grabbing the camera cancels any in-flight auto-fit
         panStart = { x: e.global.x, y: e.global.y };
@@ -335,6 +338,7 @@ export function CoinGridView() {
         app.canvas.style.cursor = 'grabbing';
       });
       app.stage.on('pointermove', (e) => {
+        if (isPinching) return;
         if (isPanning) {
           // Panning the map does NOT pause playback — the scrubber keeps
           // advancing while the user drags around to explore.
@@ -437,6 +441,81 @@ export function CoinGridView() {
       app.canvas.addEventListener('wheel', onWheel, { passive: false });
       (app.canvas as HTMLCanvasElement & { _onWheel?: typeof onWheel })._onWheel = onWheel;
 
+      // Pinch-to-zoom for touch screens (same-axis as wheel zoom).
+      const ZOOM_MIN_GRID = 0.02;
+      const ZOOM_MAX_GRID = 40;
+      function getTouchDistGrid(t: TouchList): number {
+        const dx = t[0].clientX - t[1].clientX;
+        const dy = t[0].clientY - t[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+      function getTouchMidGrid(
+        t: TouchList,
+        rect: DOMRect,
+      ): { x: number; y: number } {
+        return {
+          x: (t[0].clientX + t[1].clientX) / 2 - rect.left,
+          y: (t[0].clientY + t[1].clientY) / 2 - rect.top,
+        };
+      }
+      const onGridTouchStart = (e: TouchEvent): void => {
+        if (e.touches.length < 2) return;
+        e.preventDefault();
+        isPinching = true;
+        isPanning = false;
+        targetCam = null;
+        app.canvas.style.cursor = '';
+        lastPinchDist = getTouchDistGrid(e.touches);
+      };
+      const onGridTouchMove = (e: TouchEvent): void => {
+        if (!isPinching || e.touches.length < 2) return;
+        e.preventDefault();
+        const newDist = getTouchDistGrid(e.touches);
+        if (lastPinchDist <= 0) {
+          lastPinchDist = newDist;
+          return;
+        }
+        const scale = newDist / lastPinchDist;
+        lastPinchDist = newDist;
+        const cam = useTimegridStore.getState().camera;
+        const nextZoom = Math.max(
+          ZOOM_MIN_GRID,
+          Math.min(ZOOM_MAX_GRID, cam.zoom * scale),
+        );
+        const rect = app.canvas.getBoundingClientRect();
+        const mid = getTouchMidGrid(e.touches, rect);
+        const wx = (mid.x - cam.position.x) / cam.zoom;
+        const wy = (mid.y - cam.position.y) / cam.zoom;
+        setCamera({
+          position: { x: mid.x - wx * nextZoom, y: mid.y - wy * nextZoom },
+          zoom: nextZoom,
+        });
+        dirty = true;
+      };
+      const onGridTouchEnd = (e: TouchEvent): void => {
+        if (e.touches.length < 2) {
+          isPinching = false;
+          lastPinchDist = 0;
+        }
+      };
+      const c = app.canvas as HTMLCanvasElement & {
+        _onWheel?: typeof onWheel;
+        _onTouchStart?: typeof onGridTouchStart;
+        _onTouchMove?: typeof onGridTouchMove;
+        _onTouchEnd?: typeof onGridTouchEnd;
+      };
+      c._onTouchStart = onGridTouchStart;
+      c._onTouchMove = onGridTouchMove;
+      c._onTouchEnd = onGridTouchEnd;
+      app.canvas.addEventListener('touchstart', onGridTouchStart, {
+        passive: false,
+      });
+      app.canvas.addEventListener('touchmove', onGridTouchMove, {
+        passive: false,
+      });
+      app.canvas.addEventListener('touchend', onGridTouchEnd);
+      app.canvas.addEventListener('touchcancel', onGridTouchEnd);
+
       // Redraw only when dirty — the ticker is cheap when idle, and a redraw
       // rebuilds up to DRAW_BUDGET rects (sub-frame even at Max playback).
       app.ticker.add(() => {
@@ -506,9 +585,24 @@ export function CoinGridView() {
       unsubPlay();
       if (appReady) {
         const canvas = app.canvas as
-          | (HTMLCanvasElement & { _onWheel?: (e: WheelEvent) => void })
+          | (HTMLCanvasElement & {
+              _onWheel?: (e: WheelEvent) => void;
+              _onTouchStart?: (e: TouchEvent) => void;
+              _onTouchMove?: (e: TouchEvent) => void;
+              _onTouchEnd?: (e: TouchEvent) => void;
+            })
           | undefined;
         if (canvas?._onWheel) canvas.removeEventListener('wheel', canvas._onWheel);
+        if (canvas) {
+          if (canvas._onTouchStart)
+            canvas.removeEventListener('touchstart', canvas._onTouchStart);
+          if (canvas._onTouchMove)
+            canvas.removeEventListener('touchmove', canvas._onTouchMove);
+          if (canvas._onTouchEnd) {
+            canvas.removeEventListener('touchend', canvas._onTouchEnd);
+            canvas.removeEventListener('touchcancel', canvas._onTouchEnd);
+          }
+        }
         try {
           app.destroy(true, { children: true });
         } catch {
@@ -525,7 +619,8 @@ export function CoinGridView() {
     <div
       ref={containerRef}
       className="relative h-full w-full cursor-grab active:cursor-grabbing"
-      aria-label="Timechain Grid — every Bitcoin rendered as a tile on a deterministic spiral, colored by the mining pool that minted it. Drag to pan, scroll to zoom, hover a tile to see its miner."
+      style={{ touchAction: 'none' }}
+      aria-label="Timechain Grid — every Bitcoin rendered as a tile on a deterministic spiral, colored by the mining pool that minted it. Drag to pan, pinch to zoom, tap a tile to see its miner."
     >
       {/* Radial vignette — darkens the periphery so the lattice reads with
           depth instead of as a flat pixel sheet. Sits above the canvas, below

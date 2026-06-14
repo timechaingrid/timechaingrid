@@ -1,0 +1,304 @@
+@import "tailwindcss";
+
+/*
+ * Timechain Grid — cyber-steampunk landing CSS.
+ * Brass + cyan palette. No third-party fonts. Mechanical motifs.
+ */
+
+@theme inline {
+  /* Surfaces */
+  --color-background: #08080C;
+  --color-background-light: #11111A;
+  --color-background-lighter: #1A1A28;
+  --color-surface: rgba(255, 255, 255, 0.025);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+
+  /* Cyber palette (electric tech) */
+  --color-accent-cyan: #00D4FF;
+  --color-accent-cyan-dim: #00A8CC;
+  --color-accent-cyan-deep: #006080;
+
+  /* Brand chrome accent = the view accent (gold). Use this for UI accents:
+     eyebrow labels, links, focus rings, the status dot. The cyan tokens above
+     stay a SEMANTIC data color (significant wallets / halving), never chrome. */
+  --color-accent: #FFD700;
+  --color-accent-dim: #E0A656;
+  --color-accent-deep: #B8950E;
+
+  /* Steampunk palette (warm metallics) */
+  --color-brass: #C28840;
+  --color-brass-bright: #E0A656;
+  --color-brass-deep: #8C5E29;
+  --color-copper: #B87333;
+  --color-gold: #FFD700;
+  --color-gold-deep: #B8950E;
+  --color-amber: #F5A623;
+  --color-rust: #B5481E;
+
+  /* Text */
+  --color-text-primary: #F4F6FA;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-text-faint: #475569;
+  --color-text-rivet: rgba(245, 246, 250, 0.4);
+
+  /* Borders */
+  --color-card-border: rgba(255, 255, 255, 0.06);
+  --color-card-border-hover: rgba(255, 255, 255, 0.12);
+  --color-brass-border: rgba(194, 136, 64, 0.3);
+  --color-brass-border-bright: rgba(194, 136, 64, 0.6);
+
+  /* Status */
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  /* Fonts (no third-party imports) */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "Roboto", sans-serif;
+  --font-display: "Georgia", "Hoefler Text", "Big Caslon", "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "Menlo", monospace;
+
+  /* Shadows */
+  --shadow-glow-amber: 0 0 24px rgba(245, 166, 35, 0.25);
+  --shadow-glow-cyan: 0 0 24px rgba(0, 212, 255, 0.3);
+  --shadow-glow-cyan-lg: 0 0 48px rgba(0, 212, 255, 0.4);
+  --shadow-glow-gold: 0 0 32px rgba(255, 215, 0, 0.45);
+  --shadow-glow-brass: 0 0 18px rgba(194, 136, 64, 0.35);
+  --shadow-inset-brass: inset 0 1px 0 rgba(224, 166, 86, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+html, body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100dvh;
+  /* Ambient glows moved to the fixed body::after layer (below) so they stay
+     pinned to the viewport WITHOUT background-attachment: fixed, which jitters
+     on mobile as the URL bar collapses. */
+}
+
+/* Constellation backdrop — thin brass dots + connecting lines.
+   Gives the black bg quiet graph-paper texture without competing
+   with content. Pure SVG-as-data-URI, no external requests. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2400 1600' preserveAspectRatio='xMidYMid slice'><g fill='%23C28840'><circle cx='65' cy='65' r='2.6' opacity='0.31'/><circle cx='130' cy='195' r='2.6' opacity='0.38'/><circle cx='65' cy='325' r='2.6' opacity='0.39'/><circle cx='130' cy='455' r='3.4' opacity='0.29'/><circle cx='65' cy='585' r='2.6' opacity='0.39'/><circle cx='130' cy='715' r='2.6' opacity='0.20'/><circle cx='65' cy='845' r='2.6' opacity='0.31'/><circle cx='130' cy='975' r='2.6' opacity='0.18'/><circle cx='65' cy='1105' r='3.4' opacity='0.22'/><circle cx='130' cy='1235' r='2.6' opacity='0.25'/><circle cx='65' cy='1365' r='2.6' opacity='0.18'/><circle cx='130' cy='1495' r='2.6' opacity='0.34'/><circle cx='195' cy='65' r='2.6' opacity='0.27'/><circle cx='260' cy='195' r='2.6' opacity='0.20'/><circle cx='195' cy='325' r='2.6' opacity='0.19'/><circle cx='260' cy='455' r='2.6' opacity='0.29'/><circle cx='195' cy='585' r='2.6' opacity='0.19'/><circle cx='260' cy='715' r='2.6' opacity='0.38'/><circle cx='195' cy='845' r='2.6' opacity='0.27'/><circle cx='260' cy='975' r='2.6' opacity='0.40'/><circle cx='195' cy='1105' r='2.6' opacity='0.36'/><circle cx='260' cy='1235' r='2.6' opacity='0.34'/><circle cx='195' cy='1365' r='2.6' opacity='0.40'/><circle cx='260' cy='1495' r='3.4' opacity='0.24'/><circle cx='325' cy='65' r='2.6' opacity='0.31'/><circle cx='390' cy='195' r='3.4' opacity='0.38'/><circle cx='325' cy='325' r='2.6' opacity='0.39'/><circle cx='390' cy='455' r='2.6' opacity='0.29'/><circle cx='325' cy='585' r='2.6' opacity='0.39'/><circle cx='390' cy='715' r='2.6' opacity='0.21'/><circle cx='325' cy='845' r='3.4' opacity='0.32'/><circle cx='390' cy='975' r='2.6' opacity='0.18'/><circle cx='325' cy='1105' r='2.6' opacity='0.22'/><circle cx='390' cy='1235' r='2.6' opacity='0.24'/><circle cx='325' cy='1365' r='2.6' opacity='0.18'/><circle cx='390' cy='1495' r='2.6' opacity='0.34'/><circle cx='455' cy='65' r='2.6' opacity='0.27'/><circle cx='520' cy='195' r='2.6' opacity='0.20'/><circle cx='455' cy='325' r='2.6' opacity='0.19'/><circle cx='520' cy='455' r='2.6' opacity='0.28'/><circle cx='455' cy='585' r='2.6' opacity='0.19'/><circle cx='520' cy='715' r='2.6' opacity='0.37'/><circle cx='455' cy='845' r='2.6' opacity='0.26'/><circle cx='520' cy='975' r='2.6' opacity='0.40'/><circle cx='455' cy='1105' r='2.6' opacity='0.36'/><circle cx='520' cy='1235' r='3.4' opacity='0.34'/><circle cx='455' cy='1365' r='2.6' opacity='0.40'/><circle cx='520' cy='1495' r='2.6' opacity='0.24'/><circle cx='585' cy='65' r='2.6' opacity='0.30'/><circle cx='650' cy='195' r='2.6' opacity='0.38'/><circle cx='585' cy='325' r='2.6' opacity='0.39'/><circle cx='650' cy='455' r='2.6' opacity='0.30'/><circle cx='585' cy='585' r='3.4' opacity='0.39'/><circle cx='650' cy='715' r='2.6' opacity='0.21'/><circle cx='585' cy='845' r='2.6' opacity='0.32'/><circle cx='650' cy='975' r='2.6' opacity='0.18'/><circle cx='585' cy='1105' r='2.6' opacity='0.22'/><circle cx='650' cy='1235' r='2.6' opacity='0.24'/><circle cx='585' cy='1365' r='2.6' opacity='0.18'/><circle cx='650' cy='1495' r='2.6' opacity='0.34'/><circle cx='715' cy='65' r='2.6' opacity='0.28'/><circle cx='780' cy='195' r='2.6' opacity='0.20'/><circle cx='715' cy='325' r='2.6' opacity='0.20'/><circle cx='780' cy='455' r='2.6' opacity='0.28'/><circle cx='715' cy='585' r='2.6' opacity='0.19'/><circle cx='780' cy='715' r='2.6' opacity='0.37'/><circle cx='715' cy='845' r='2.6' opacity='0.26'/><circle cx='780' cy='975' r='3.4' opacity='0.40'/><circle cx='715' cy='1105' r='2.6' opacity='0.35'/><circle cx='780' cy='1235' r='2.6' opacity='0.34'/><circle cx='715' cy='1365' r='2.6' opacity='0.40'/><circle cx='780' cy='1495' r='2.6' opacity='0.25'/><circle cx='845' cy='65' r='2.6' opacity='0.30'/><circle cx='910' cy='195' r='2.6' opacity='0.38'/><circle cx='845' cy='325' r='3.4' opacity='0.38'/><circle cx='910' cy='455' r='2.6' opacity='0.30'/><circle cx='845' cy='585' r='2.6' opacity='0.39'/><circle cx='910' cy='715' r='2.6' opacity='0.21'/><circle cx='845' cy='845' r='2.6' opacity='0.32'/><circle cx='910' cy='975' r='2.6' opacity='0.18'/><circle cx='845' cy='1105' r='2.6' opacity='0.23'/><circle cx='910' cy='1235' r='2.6' opacity='0.23'/><circle cx='845' cy='1365' r='2.6' opacity='0.18'/><circle cx='910' cy='1495' r='2.6' opacity='0.33'/><circle cx='975' cy='65' r='2.6' opacity='0.28'/><circle cx='1040' cy='195' r='2.6' opacity='0.19'/><circle cx='975' cy='325' r='2.6' opacity='0.20'/><circle cx='1040' cy='455' r='2.6' opacity='0.27'/><circle cx='975' cy='585' r='2.6' opacity='0.19'/><circle cx='1040' cy='715' r='3.4' opacity='0.37'/><circle cx='975' cy='845' r='2.6' opacity='0.25'/><circle cx='1040' cy='975' r='2.6' opacity='0.40'/><circle cx='975' cy='1105' r='2.6' opacity='0.35'/><circle cx='1040' cy='1235' r='2.6' opacity='0.35'/><circle cx='975' cy='1365' r='3.4' opacity='0.40'/><circle cx='1040' cy='1495' r='2.6' opacity='0.25'/><circle cx='1105' cy='65' r='3.4' opacity='0.30'/><circle cx='1170' cy='195' r='2.6' opacity='0.39'/><circle cx='1105' cy='325' r='2.6' opacity='0.38'/><circle cx='1170' cy='455' r='2.6' opacity='0.31'/><circle cx='1105' cy='585' r='2.6' opacity='0.40'/><circle cx='1170' cy='715' r='2.6' opacity='0.22'/><circle cx='1105' cy='845' r='2.6' opacity='0.33'/><circle cx='1170' cy='975' r='2.6' opacity='0.18'/><circle cx='1105' cy='1105' r='2.6' opacity='0.23'/><circle cx='1170' cy='1235' r='2.6' opacity='0.23'/><circle cx='1105' cy='1365' r='2.6' opacity='0.18'/><circle cx='1170' cy='1495' r='2.6' opacity='0.33'/><circle cx='1235' cy='65' r='2.6' opacity='0.29'/><circle cx='1300' cy='195' r='2.6' opacity='0.19'/><circle cx='1235' cy='325' r='2.6' opacity='0.20'/><circle cx='1300' cy='455' r='3.4' opacity='0.27'/><circle cx='1235' cy='585' r='2.6' opacity='0.18'/><circle cx='1300' cy='715' r='2.6' opacity='0.36'/><circle cx='1235' cy='845' r='2.6' opacity='0.25'/><circle cx='1300' cy='975' r='2.6' opacity='0.40'/><circle cx='1235' cy='1105' r='3.4' opacity='0.35'/><circle cx='1300' cy='1235' r='2.6' opacity='0.35'/><circle cx='1235' cy='1365' r='2.6' opacity='0.40'/><circle cx='1300' cy='1495' r='2.6' opacity='0.26'/><circle cx='1365' cy='65' r='2.6' opacity='0.29'/><circle cx='1430' cy='195' r='2.6' opacity='0.39'/><circle cx='1365' cy='325' r='2.6' opacity='0.38'/><circle cx='1430' cy='455' r='2.6' opacity='0.31'/><circle cx='1365' cy='585' r='2.6' opacity='0.40'/><circle cx='1430' cy='715' r='2.6' opacity='0.22'/><circle cx='1365' cy='845' r='2.6' opacity='0.33'/><circle cx='1430' cy='975' r='2.6' opacity='0.18'/><circle cx='1365' cy='1105' r='2.6' opacity='0.24'/><circle cx='1430' cy='1235' r='2.6' opacity='0.23'/><circle cx='1365' cy='1365' r='2.6' opacity='0.18'/><circle cx='1430' cy='1495' r='3.4' opacity='0.32'/><circle cx='1495' cy='65' r='2.6' opacity='0.29'/><circle cx='1560' cy='195' r='3.4' opacity='0.19'/><circle cx='1495' cy='325' r='2.6' opacity='0.20'/><circle cx='1560' cy='455' r='2.6' opacity='0.26'/><circle cx='1495' cy='585' r='2.6' opacity='0.18'/><circle cx='1560' cy='715' r='2.6' opacity='0.36'/><circle cx='1495' cy='845' r='3.4' opacity='0.24'/><circle cx='1560' cy='975' r='2.6' opacity='0.40'/><circle cx='1495' cy='1105' r='2.6' opacity='0.34'/><circle cx='1560' cy='1235' r='2.6' opacity='0.36'/><circle cx='1495' cy='1365' r='2.6' opacity='0.40'/><circle cx='1560' cy='1495' r='2.6' opacity='0.26'/><circle cx='1625' cy='65' r='2.6' opacity='0.29'/><circle cx='1690' cy='195' r='2.6' opacity='0.39'/><circle cx='1625' cy='325' r='2.6' opacity='0.37'/><circle cx='1690' cy='455' r='2.6' opacity='0.32'/><circle cx='1625' cy='585' r='2.6' opacity='0.40'/><circle cx='1690' cy='715' r='2.6' opacity='0.22'/><circle cx='1625' cy='845' r='2.6' opacity='0.34'/><circle cx='1690' cy='975' r='2.6' opacity='0.18'/><circle cx='1625' cy='1105' r='2.6' opacity='0.24'/><circle cx='1690' cy='1235' r='3.4' opacity='0.22'/><circle cx='1625' cy='1365' r='2.6' opacity='0.18'/><circle cx='1690' cy='1495' r='2.6' opacity='0.32'/><circle cx='1755' cy='65' r='2.6' opacity='0.30'/><circle cx='1820' cy='195' r='2.6' opacity='0.19'/><circle cx='1755' cy='325' r='2.6' opacity='0.21'/><circle cx='1820' cy='455' r='2.6' opacity='0.26'/><circle cx='1755' cy='585' r='3.4' opacity='0.18'/><circle cx='1820' cy='715' r='2.6' opacity='0.36'/><circle cx='1755' cy='845' r='2.6' opacity='0.24'/><circle cx='1820' cy='975' r='2.6' opacity='0.40'/><circle cx='1755' cy='1105' r='2.6' opacity='0.34'/><circle cx='1820' cy='1235' r='2.6' opacity='0.36'/><circle cx='1755' cy='1365' r='2.6' opacity='0.40'/><circle cx='1820' cy='1495' r='2.6' opacity='0.26'/><circle cx='1885' cy='65' r='2.6' opacity='0.28'/><circle cx='1950' cy='195' r='2.6' opacity='0.39'/><circle cx='1885' cy='325' r='2.6' opacity='0.37'/><circle cx='1950' cy='455' r='2.6' opacity='0.32'/><circle cx='1885' cy='585' r='2.6' opacity='0.40'/><circle cx='1950' cy='715' r='2.6' opacity='0.23'/><circle cx='1885' cy='845' r='2.6' opacity='0.34'/><circle cx='1950' cy='975' r='3.4' opacity='0.18'/><circle cx='1885' cy='1105' r='2.6' opacity='0.24'/><circle cx='1950' cy='1235' r='2.6' opacity='0.22'/><circle cx='1885' cy='1365' r='2.6' opacity='0.18'/><circle cx='1950' cy='1495' r='2.6' opacity='0.31'/><circle cx='2015' cy='65' r='2.6' opacity='0.30'/><circle cx='2080' cy='195' r='2.6' opacity='0.19'/><circle cx='2015' cy='325' r='3.4' opacity='0.21'/><circle cx='2080' cy='455' r='2.6' opacity='0.26'/><circle cx='2015' cy='585' r='2.6' opacity='0.18'/><circle cx='2080' cy='715' r='2.6' opacity='0.35'/><circle cx='2015' cy='845' r='2.6' opacity='0.24'/><circle cx='2080' cy='975' r='2.6' opacity='0.40'/><circle cx='2015' cy='1105' r='2.6' opacity='0.33'/><circle cx='2080' cy='1235' r='2.6' opacity='0.36'/><circle cx='2015' cy='1365' r='2.6' opacity='0.40'/><circle cx='2080' cy='1495' r='2.6' opacity='0.27'/><circle cx='2145' cy='65' r='2.6' opacity='0.28'/><circle cx='2210' cy='195' r='2.6' opacity='0.39'/><circle cx='2145' cy='325' r='2.6' opacity='0.37'/><circle cx='2210' cy='455' r='2.6' opacity='0.33'/><circle cx='2145' cy='585' r='2.6' opacity='0.40'/><circle cx='2210' cy='715' r='3.4' opacity='0.23'/><circle cx='2145' cy='845' r='2.6' opacity='0.35'/><circle cx='2210' cy='975' r='2.6' opacity='0.18'/><circle cx='2145' cy='1105' r='2.6' opacity='0.25'/><circle cx='2210' cy='1235' r='2.6' opacity='0.22'/><circle cx='2145' cy='1365' r='3.4' opacity='0.18'/><circle cx='2210' cy='1495' r='2.6' opacity='0.31'/><circle cx='2275' cy='65' r='3.4' opacity='0.31'/><circle cx='2340' cy='195' r='2.6' opacity='0.19'/><circle cx='2275' cy='325' r='2.6' opacity='0.21'/><circle cx='2340' cy='455' r='2.6' opacity='0.25'/><circle cx='2275' cy='585' r='2.6' opacity='0.18'/><circle cx='2340' cy='715' r='2.6' opacity='0.35'/><circle cx='2275' cy='845' r='2.6' opacity='0.23'/><circle cx='2340' cy='975' r='2.6' opacity='0.40'/><circle cx='2275' cy='1105' r='2.6' opacity='0.33'/><circle cx='2340' cy='1235' r='2.6' opacity='0.37'/><circle cx='2275' cy='1365' r='2.6' opacity='0.40'/><circle cx='2340' cy='1495' r='2.6' opacity='0.27'/></g><g stroke='%23C28840' stroke-width='0.5' fill='none' opacity='0.10'><line x1='331' y1='65' x2='449' y2='65'/><line x1='721' y1='65' x2='839' y2='65'/><line x1='1111' y1='65' x2='1229' y2='65'/><line x1='1501' y1='65' x2='1619' y2='65'/><line x1='1891' y1='65' x2='2009' y2='65'/><line x1='71' y1='325' x2='189' y2='325'/><line x1='461' y1='325' x2='579' y2='325'/><line x1='851' y1='325' x2='969' y2='325'/><line x1='1241' y1='325' x2='1359' y2='325'/><line x1='1631' y1='325' x2='1749' y2='325'/><line x1='2021' y1='325' x2='2139' y2='325'/><line x1='201' y1='585' x2='319' y2='585'/><line x1='591' y1='585' x2='709' y2='585'/><line x1='981' y1='585' x2='1099' y2='585'/><line x1='1371' y1='585' x2='1489' y2='585'/><line x1='1761' y1='585' x2='1879' y2='585'/><line x1='2151' y1='585' x2='2269' y2='585'/><line x1='331' y1='845' x2='449' y2='845'/><line x1='721' y1='845' x2='839' y2='845'/><line x1='1111' y1='845' x2='1229' y2='845'/><line x1='1501' y1='845' x2='1619' y2='845'/><line x1='1891' y1='845' x2='2009' y2='845'/><line x1='71' y1='1105' x2='189' y2='1105'/><line x1='461' y1='1105' x2='579' y2='1105'/><line x1='851' y1='1105' x2='969' y2='1105'/><line x1='1241' y1='1105' x2='1359' y2='1105'/><line x1='1631' y1='1105' x2='1749' y2='1105'/><line x1='2021' y1='1105' x2='2139' y2='1105'/><line x1='201' y1='1365' x2='319' y2='1365'/><line x1='591' y1='1365' x2='709' y2='1365'/><line x1='981' y1='1365' x2='1099' y2='1365'/><line x1='1371' y1='1365' x2='1489' y2='1365'/><line x1='1761' y1='1365' x2='1879' y2='1365'/><line x1='2151' y1='1365' x2='2269' y2='1365'/></g></svg>");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.9;
+}
+
+/* Subtle scanline texture overlay (above constellation, below content) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255, 215, 0, 0.045) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(194, 136, 64, 0.045) 0%, transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 3px,
+      rgba(255, 255, 255, 0.012) 3px,
+      rgba(255, 255, 255, 0.012) 4px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+
+/* New-block pop for the LiveTipPanel — the tip height remounts (React key)
+   on each block and flares briefly. */
+@keyframes tip-pop {
+  0%   { transform: scale(1.15); color: #ffe680; }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 1.0; transform: scale(1.5); }
+}
+
+@keyframes pulse-satoshi {
+  0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.7)); }
+  50%      { opacity: 1.0;  filter: drop-shadow(0 0 18px rgba(255, 215, 0, 1.0)); }
+}
+
+/* Grid tile-lattice sweep — a brightness wave staggered by ring distance so the
+   coin lattice reads as growing outward from Satoshi (Grid hero emblem). */
+@keyframes tile-sweep {
+  0%, 100% { opacity: 0.32; }
+  50%      { opacity: 1; }
+}
+
+@keyframes drift-up {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes drift-fade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes status-blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0.3; }
+}
+
+@keyframes gear-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes gear-rotate-rev {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+@keyframes scanline-sweep {
+  0%   { transform: translateY(-100%); opacity: 0.8; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes ticker {
+  0%   { opacity: 0.3; }
+  10%, 90% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Utility classes ─────────────────────────────────────── */
+
+.text-mono { font-family: var(--font-mono); }
+.text-display { font-family: var(--font-display); letter-spacing: -0.01em; }
+
+.glass-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 200ms, border-color 200ms;
+}
+
+.glass-panel:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-card-border-hover);
+}
+
+.brass-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%), var(--color-background-light);
+  border: 1px solid var(--color-brass-border);
+  box-shadow: var(--shadow-inset-brass);
+  position: relative;
+}
+
+.brass-panel::before {
+  /* Top-left and top-right rivet dots */
+  content: "";
+  position: absolute;
+  top: 6px; left: 6px;
+  width: 3px; height: 3px;
+  background: var(--color-brass);
+  border-radius: 999px;
+  box-shadow:
+    calc(100% + 0px) 0 0 0 var(--color-brass),
+    0 calc(100% + 0px) 0 0 var(--color-brass),
+    calc(100% + 0px) calc(100% + 0px) 0 0 var(--color-brass);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+  animation: status-blink 2.2s ease-in-out infinite;
+}
+
+.section-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center;
+}
+
+.gear-spin {
+  animation: gear-rotate 32s linear infinite;
+  transform-origin: center;
+}
+
+.gear-spin-rev {
+  animation: gear-rotate-rev 24s linear infinite;
+  transform-origin: center;
+}
+
+.scanline-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 212, 255, 0.06) 50%, transparent 100%);
+  height: 30%;
+  animation: scanline-sweep 7s linear infinite;
+  pointer-events: none;
+}
+
+.brass-shimmer {
+  /* Shared theme ramp — same dimmed brass → gold → amber as .hero-gradient
+     and the emblem, so the wordmark, footer, and every page heading read as
+     one palette with the hero. Animated (slides 200%). */
+  background: linear-gradient(
+    90deg,
+    #D89A4E 0%,
+    #E8C028 30%,
+    #D88E1C 50%,
+    #E8C028 70%,
+    #D89A4E 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+/* Home-hero headline — a vivid gold gradient (punchier than brass-shimmer,
+   which the smaller page heroes keep). Static for a bold, clean read; the
+   animated emblem beside it carries the motion. */
+.hero-gradient {
+  background: linear-gradient(
+    115deg,
+    #D89A4E 0%,
+    #E8C028 35%,
+    #D88E1C 58%,
+    #E8C028 80%,
+    #D89A4E 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

@@ -81,7 +81,7 @@ export const DONATION_LIVE =
  */
 export const SUPPORT_EMAIL: string = 'support@timechaingrid.com';
 export const X_HANDLE: string = 'timechaingrid'; // x.com/timechaingrid (no @)
-export const NOSTR_NPUB: string = ''; // e.g. 'npub1…'
+export const NOSTR_NPUB: string = 'npub12ynwkvuxjxv5qjqpzn3gsrvvfaydafjwfhsved2y6du6u3462pgs6sp0au'; // SHARED with Graph by design (operator decision 2026-06-14): Timechain Graph is the flagship Nostr identity, so Grid's footer icon links to the SAME npub (njump.me/<npub>). The one intentional exception to "these MUST diverge". No /.well-known/nostr.json needed on Grid — NIP-05 verification lives at @timechaingraph.com, where the account claims to live.
 export const GITHUB_URL: string = 'https://github.com/timechaingrid/timechaingrid'; // set once repo is public
 
 export interface SocialLink {

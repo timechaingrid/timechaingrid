@@ -90,6 +90,10 @@ The CI pipeline runs `scripts/privacy-audit.sh` against every build;
 the deploy script bails if any forbidden third-party domain appears
 in the static export.
 
+For the complete threat model — what a viewer reveals, how the boundary is
+enforced in CI, the trust assumptions, and what is explicitly out of scope —
+see [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router, static export to Cloudflare Pages)

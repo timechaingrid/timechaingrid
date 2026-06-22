@@ -143,6 +143,11 @@ body::after {
   50%      { opacity: 1; }
 }
 
+/* Hero tile interaction — hover brightens (color-preserving; filter is immune to
+ * the opacity sweep above, so the highlight lands at any cycle phase). */
+.hero-tile { cursor: pointer; }
+.hero-tile:hover { filter: brightness(1.5); }
+
 @keyframes drift-up {
   0%   { opacity: 0; transform: translateY(14px); }
   100% { opacity: 1; transform: translateY(0); }

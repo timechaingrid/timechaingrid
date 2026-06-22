@@ -1,3 +1,4 @@
+'use client';
 /**
  * HeroVisual (Grid) — the view-specific inner art for the Grid landing,
  * dropped into the shared <HeroFrame/>: a coin-tile lattice expanding from a
@@ -12,7 +13,13 @@
  * Tile geometry is a deterministic integer lattice (no RNG / no transcendental
  * functions in selection — only Math.sqrt, which is IEEE-correctly-rounded), so
  * SSR + client render byte-identical and never mismatch on hydration.
+ *
+ * Interaction: hover brightens a tile (CSS `.hero-tile:hover`, color-preserving
+ * via filter); clicking a tile "sets the border" — a gold outline overlay. The
+ * selection starts null, so SSR + the first client render carry no overlay
+ * (hydration-safe); clicking the same tile again clears it.
  */
+import { useState } from 'react';
 import { HeroFrame } from './HeroFrame';
 
 const CENTER = 220; // matches HeroFrame SIZE/2
@@ -48,19 +55,24 @@ function buildTiles(): Tile[] {
 const TILES = buildTiles();
 
 export function HeroVisual() {
+  // Index of the tile whose border is "set". Null until a click (hydration-safe).
+  const [sel, setSel] = useState<number | null>(null);
+
   return (
-    <HeroFrame ariaLabel="Timechain Grid: a brass-framed lattice of Bitcoin coins — every coin one fixed tile, gold tiles occupied, the brass grid expanding ring by ring from a gold ₿ at Satoshi's genesis center.">
+    <HeroFrame ariaLabel="Timechain Grid: a brass-framed lattice of Bitcoin coins — every coin one fixed tile, gold tiles occupied, the brass grid expanding ring by ring from a gold ₿ at Satoshi's genesis center. Hover a tile to highlight it; click to set its border.">
       {/* Coin tiles — brass lattice + gold occupied cells, brightness sweeping outward by ring. */}
       <g>
         {TILES.map((t, i) => (
           <rect
             key={i}
+            className="hero-tile"
             x={t.x - TILE / 2}
             y={t.y - TILE / 2}
             width={TILE}
             height={TILE}
             rx={2.5}
             fill={t.gold ? 'rgba(232, 192, 40, 0.9)' : 'rgba(194, 136, 64, 0.5)'}
+            onClick={() => setSel((s) => (s === i ? null : i))}
             style={{
               animation: `tile-sweep ${t.dur}s ease-in-out ${t.delay.toFixed(2)}s infinite`,
               transformBox: 'fill-box',
@@ -69,6 +81,21 @@ export function HeroVisual() {
           />
         ))}
       </g>
+
+      {/* Selected tile — a gold border overlay, "minting" that coin. */}
+      {sel !== null && (
+        <rect
+          x={TILES[sel].x - TILE / 2 - 2}
+          y={TILES[sel].y - TILE / 2 - 2}
+          width={TILE + 4}
+          height={TILE + 4}
+          rx={3.5}
+          fill="none"
+          stroke="#FFD700"
+          strokeWidth={1.8}
+          pointerEvents="none"
+        />
+      )}
 
       {/* ₿ core — gold genesis tile with a breathing glow, the lattice's origin. */}
       <circle cx={CENTER} cy={CENTER} r={26} fill="url(#satoshi-glow-outer)" />

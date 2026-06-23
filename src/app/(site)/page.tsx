@@ -144,7 +144,7 @@ function RealEstatePillars() {
             <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
               {p.label}
             </p>
-            <p className="mt-5 leading-relaxed text-[color:var(--color-text-secondary)]">
+            <p className="mt-5 leading-relaxed text-[rgba(244,246,250,0.72)]">
               {p.body}
             </p>
           </div>
@@ -188,7 +188,7 @@ function FinalCTA() {
           <h2 className="text-display mt-3 text-3xl font-semibold leading-tight md:text-4xl">
             Open the grid. Watch it grow.
           </h2>
-          <p className="mt-3 max-w-xl leading-relaxed text-[color:var(--color-text-secondary)]">
+          <p className="mt-3 max-w-xl leading-relaxed text-[rgba(244,246,250,0.72)]">
             Genesis to today, block by block. Pan, zoom, hover. Click
             any tile to see its owner&apos;s territory.
           </p>

@@ -56,8 +56,8 @@ function Hero() {
         >
           <Link
             href="/grid"
-            className="brass-panel rounded-full px-7 py-3.5 text-mono text-base uppercase tracking-[0.2em] transition-all hover:border-[color:var(--color-amber)] hover:shadow-[0_0_24px_rgba(255,215,0,0.18)]"
-            style={{ color: 'var(--color-amber)' }}
+            className="rounded-full px-7 py-3.5 text-mono text-base font-semibold uppercase tracking-[0.2em] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]"
+            style={{ background: 'var(--color-accent)', color: 'var(--color-background)' }}
           >
             Open the grid ⟶
           </Link>
@@ -186,7 +186,7 @@ function FinalCTA() {
             Ready
           </p>
           <h2 className="text-display mt-3 text-3xl font-semibold leading-tight md:text-4xl">
-            Open the map. Watch it grow.
+            Open the grid. Watch it grow.
           </h2>
           <p className="mt-3 max-w-xl leading-relaxed text-[color:var(--color-text-secondary)]">
             Genesis to today, block by block. Pan, zoom, hover. Click

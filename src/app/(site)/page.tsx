@@ -61,7 +61,7 @@ function Hero() {
           >
             Open the grid ⟶
           </Link>
-          <span className="flex items-center gap-2 whitespace-nowrap text-mono text-base uppercase tracking-[0.24em] text-[color:var(--color-text-muted)]">
+          <span className="flex items-center gap-2 whitespace-nowrap text-mono text-base uppercase tracking-[0.24em] text-[rgba(244,246,250,0.58)]">
             <span
               aria-hidden
               className="inline-block h-1.5 w-1.5 rounded-full"
@@ -141,7 +141,7 @@ function RealEstatePillars() {
               aria-hidden
               className="absolute left-0 top-7 h-6 w-px bg-[color:var(--color-brass-bright)] opacity-0 transition-opacity duration-300 group-hover:opacity-60 md:top-9"
             />
-            <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+            <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
               {p.label}
             </p>
             <p className="mt-5 leading-relaxed text-[rgba(244,246,250,0.72)]">
@@ -159,7 +159,7 @@ function RealEstatePillars() {
 function Timeline() {
   return (
     <section className="border-t border-[color:var(--color-card-border)] py-14 md:py-20">
-      <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+      <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
         Halving epochs
       </p>
       <p className="text-display mt-4 max-w-3xl text-xl leading-snug text-[color:var(--color-text-secondary)] md:text-2xl md:leading-snug">
@@ -182,7 +182,7 @@ function FinalCTA() {
     <section className="border-t border-[color:var(--color-card-border)] py-16 md:py-24">
       <div className="brass-panel flex flex-col items-start justify-between gap-6 rounded-xl p-8 md:flex-row md:items-center md:gap-10 md:p-10">
         <div className="flex-1">
-          <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+          <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
             Ready
           </p>
           <h2 className="text-display mt-3 text-3xl font-semibold leading-tight md:text-4xl">

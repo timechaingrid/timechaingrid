@@ -34,8 +34,8 @@ export default function HomePage() {
 
 function Hero() {
   return (
-    <section className="grid items-center gap-12 py-4 md:grid-cols-[1.1fr_1fr] md:gap-16 md:py-8 lg:gap-20 lg:py-10">
-      <div className="flex flex-col gap-8 self-start">
+    <section className="grid grid-cols-1 items-center gap-12 py-4 md:grid-cols-[1.1fr_1fr] md:gap-16 md:py-8 lg:gap-20 lg:py-10">
+      <div className="flex min-w-0 flex-col gap-8 self-start">
         <h1
           className="text-display hero-gradient text-5xl font-bold leading-[1.02] tracking-tight md:text-7xl lg:text-[5.5rem]"
           style={{ animation: 'drift-up 0.7s ease-out 0.15s both' }}
@@ -45,7 +45,7 @@ function Hero() {
           {VIEW_HERO_BOTTOM}
         </h1>
         <p
-          className="max-w-xl text-pretty text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg"
+          className="max-w-xl text-pretty text-base leading-relaxed text-[rgba(244,246,250,0.82)] md:text-lg"
           style={{ animation: 'drift-up 0.7s ease-out 0.25s both' }}
         >
           {VIEW_HERO_DESCRIPTION}
@@ -56,12 +56,12 @@ function Hero() {
         >
           <Link
             href="/grid"
-            className="brass-panel rounded-full px-7 py-3.5 text-mono text-base uppercase tracking-[0.2em] transition-all hover:border-[color:var(--color-amber)] hover:shadow-[0_0_24px_rgba(255,215,0,0.18)]"
-            style={{ color: 'var(--color-amber)' }}
+            className="rounded-full px-7 py-3.5 text-mono text-base font-semibold uppercase tracking-[0.2em] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]"
+            style={{ background: 'var(--color-accent)', color: 'var(--color-background)' }}
           >
             Open the grid ⟶
           </Link>
-          <span className="flex items-center gap-2 whitespace-nowrap text-mono text-base uppercase tracking-[0.24em] text-[color:var(--color-text-muted)]">
+          <span className="flex items-center gap-2 text-mono text-base uppercase tracking-[0.24em] text-[rgba(244,246,250,0.58)] md:whitespace-nowrap">
             <span
               aria-hidden
               className="inline-block h-1.5 w-1.5 rounded-full"
@@ -76,7 +76,7 @@ function Hero() {
       </div>
 
       <div
-        className="relative flex aspect-square items-center justify-center"
+        className="relative flex aspect-square w-full min-w-0 items-center justify-center overflow-hidden"
         style={{ animation: 'drift-up 0.9s ease-out 0.4s both' }}
       >
         <HeroVisual />
@@ -94,7 +94,7 @@ function Mission() {
         Bitcoin&apos;s issuance is{' '}
         <span className="text-[color:var(--color-text-primary)]">final</span>
         . Twenty-one million coins, no more, no less.
-        Timechain Grid makes the map observable to anyone with a
+        Timechain Grid makes the supply observable to anyone with a
         browser — and{' '}
         <span className="text-[color:var(--color-gold)]">observable to no one but you</span>
         .
@@ -120,12 +120,12 @@ function RealEstatePillars() {
     {
       label: 'Players occupy',
       body:
-        'Wallets are players, coins are property. Hover a tile to see who owns it. Tap to light up their full territory across the map.',
+        'Wallets are players, coins are property. Hover a tile to see who owns it. Tap to light up their full territory across the grid.',
     },
     {
       label: 'Genesis to today',
       body:
-        'Press play. The lattice expands block by block, halvings flash by, the modern map emerges from the genesis kernel.',
+        'Press play. The lattice expands block by block, halvings flash by, the modern grid emerges from the genesis kernel.',
     },
   ];
 
@@ -141,10 +141,10 @@ function RealEstatePillars() {
               aria-hidden
               className="absolute left-0 top-7 h-6 w-px bg-[color:var(--color-brass-bright)] opacity-0 transition-opacity duration-300 group-hover:opacity-60 md:top-9"
             />
-            <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+            <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
               {p.label}
             </p>
-            <p className="mt-5 leading-relaxed text-[color:var(--color-text-secondary)]">
+            <p className="mt-5 leading-relaxed text-[rgba(244,246,250,0.72)]">
               {p.body}
             </p>
           </div>
@@ -159,11 +159,11 @@ function RealEstatePillars() {
 function Timeline() {
   return (
     <section className="border-t border-[color:var(--color-card-border)] py-14 md:py-20">
-      <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+      <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
         Halving epochs
       </p>
       <p className="text-display mt-4 max-w-3xl text-xl leading-snug text-[color:var(--color-text-secondary)] md:text-2xl md:leading-snug">
-        Click any halving to scrub the map to that moment in chain
+        Click any halving to scrub the grid to that moment in chain
         history. Each halving cuts the new-tile rate in half — 50, 25,
         12.5, 6.25, 3.125 BTC per block — so the grid grows in slowing
         waves.
@@ -182,24 +182,21 @@ function FinalCTA() {
     <section className="border-t border-[color:var(--color-card-border)] py-16 md:py-24">
       <div className="brass-panel flex flex-col items-start justify-between gap-6 rounded-xl p-8 md:flex-row md:items-center md:gap-10 md:p-10">
         <div className="flex-1">
-          <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-brass-bright)]">
+          <p className="text-mono text-base uppercase tracking-[0.32em] text-[color:var(--color-accent)]">
             Ready
           </p>
           <h2 className="text-display mt-3 text-3xl font-semibold leading-tight md:text-4xl">
-            Open the map. Watch it grow.
+            Open the grid. Watch it grow.
           </h2>
-          <p className="mt-3 max-w-xl leading-relaxed text-[color:var(--color-text-secondary)]">
+          <p className="mt-3 max-w-xl leading-relaxed text-[rgba(244,246,250,0.72)]">
             Genesis to today, block by block. Pan, zoom, hover. Click
             any tile to see its owner&apos;s territory.
           </p>
         </div>
         <Link
           href="/grid"
-          className="rounded-full border px-7 py-3.5 text-mono text-base uppercase tracking-[0.2em] transition-colors hover:opacity-90"
-          style={{
-            borderColor: 'var(--color-amber)',
-            color: 'var(--color-amber)',
-          }}
+          className="rounded-full px-7 py-3.5 text-mono text-base font-semibold uppercase tracking-[0.2em] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-background)' }}
         >
           Open the grid ⟶
         </Link>

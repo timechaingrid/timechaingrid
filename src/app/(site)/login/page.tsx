@@ -51,7 +51,7 @@ export default function LoginPage() {
           <p className="text-mono text-base uppercase tracking-[0.22em] text-[color:var(--color-accent)]">
             Public viewer
           </p>
-          <p className="text-display mt-2 text-2xl font-semibold">
+          <p className="text-display mt-2 break-all text-2xl font-semibold">
             timechaingrid.com
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[color:var(--color-text-secondary)]">
@@ -81,7 +81,7 @@ export default function LoginPage() {
           <p className="text-mono text-base uppercase tracking-[0.22em] text-[color:var(--color-amber)]">
             Developer API · v0.4
           </p>
-          <p className="text-display mt-2 text-2xl font-semibold">
+          <p className="text-display mt-2 break-all text-2xl font-semibold">
             {API_DOMAIN}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[color:var(--color-text-secondary)]">

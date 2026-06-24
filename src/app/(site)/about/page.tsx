@@ -1,10 +1,22 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+const ABOUT_DESCRIPTION = 'Why Timechain Grid exists, what motivates the project, who it is for, and how it stays privacy-first.';
+
 export const metadata: Metadata = {
   title: 'About',
-  description:
-    'Why Timechain exists, what motivates the project, who it is for, and how it stays privacy-first.',
+  description: ABOUT_DESCRIPTION,
+  openGraph: {
+    title: 'About · Timechain Grid',
+    description: ABOUT_DESCRIPTION,
+    images: [{ url: '/og2.png', width: 1200, height: 630, alt: 'Timechain Grid' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About · Timechain Grid',
+    description: ABOUT_DESCRIPTION,
+    images: ['/og2.png'],
+  },
 };
 
 export default function AboutPage() {
@@ -94,6 +106,17 @@ export default function AboutPage() {
           </li>
         </ul>
       </section>
+
+      <p className="mt-12 max-w-2xl text-sm leading-relaxed text-[color:var(--color-text-muted)]">
+        New to Bitcoin, or have questions about the data and privacy model?{' '}
+        <Link
+          href="/faq"
+          className="text-[color:var(--color-gold)] underline-offset-4 hover:underline"
+        >
+          See the FAQ
+        </Link>
+        .
+      </p>
     </div>
   );
 }

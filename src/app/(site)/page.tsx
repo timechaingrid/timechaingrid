@@ -94,7 +94,7 @@ function Mission() {
         Bitcoin&apos;s issuance is{' '}
         <span className="text-[color:var(--color-text-primary)]">final</span>
         . Twenty-one million coins, no more, no less.
-        Timechain Grid makes the map observable to anyone with a
+        Timechain Grid makes the supply observable to anyone with a
         browser — and{' '}
         <span className="text-[color:var(--color-gold)]">observable to no one but you</span>
         .
@@ -120,12 +120,12 @@ function RealEstatePillars() {
     {
       label: 'Players occupy',
       body:
-        'Wallets are players, coins are property. Hover a tile to see who owns it. Tap to light up their full territory across the map.',
+        'Wallets are players, coins are property. Hover a tile to see who owns it. Tap to light up their full territory across the grid.',
     },
     {
       label: 'Genesis to today',
       body:
-        'Press play. The lattice expands block by block, halvings flash by, the modern map emerges from the genesis kernel.',
+        'Press play. The lattice expands block by block, halvings flash by, the modern grid emerges from the genesis kernel.',
     },
   ];
 
@@ -163,7 +163,7 @@ function Timeline() {
         Halving epochs
       </p>
       <p className="text-display mt-4 max-w-3xl text-xl leading-snug text-[color:var(--color-text-secondary)] md:text-2xl md:leading-snug">
-        Click any halving to scrub the map to that moment in chain
+        Click any halving to scrub the grid to that moment in chain
         history. Each halving cuts the new-tile rate in half — 50, 25,
         12.5, 6.25, 3.125 BTC per block — so the grid grows in slowing
         waves.

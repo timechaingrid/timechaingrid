@@ -11,7 +11,7 @@
  * If the env vars are not set, returns 503 {"status":"coming_soon"}.
  */
 
-const ALLOWED_ORIGIN = 'timechaingraph.com';
+const ALLOWED_ORIGIN = 'timechaingrid.com';
 
 function isAllowedOrigin(origin) {
   try {

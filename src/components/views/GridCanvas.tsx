@@ -28,6 +28,30 @@ export function GridCanvas() {
   // Live chain-tip polling (same-origin relay) — display-only, feeds LiveTipPanel.
   useLiveTip();
 
+  // Keyboard controls — document-level so they work regardless of canvas focus.
+  // Space = play/pause, arrow keys = ±1 block, Esc = deselect tile.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        const { playbackPlaying, setPlaybackPlaying } = useTimegridStore.getState();
+        setPlaybackPlaying(!playbackPlaying);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const { currentBlock, setCurrentBlock } = useTimegridStore.getState();
+        setCurrentBlock(currentBlock - 1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const { currentBlock, setCurrentBlock } = useTimegridStore.getState();
+        setCurrentBlock(currentBlock + 1);
+      } else if (e.key === 'Escape') {
+        useTimegridStore.getState().setSelectedWallet(null);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {

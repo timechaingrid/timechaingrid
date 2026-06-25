@@ -72,6 +72,9 @@ export const DONATION_LIGHTNING_ADDRESS = ''; // coming: self-hosted via BTCPay/
 export const DONATION_LIVE =
   DONATION_BTC_ADDRESS.length > 0 && !DONATION_BTC_ADDRESS.includes('PLACEHOLDER');
 
+export const INSIGHTS_SUBSCRIBE_URL: string = ''; // set to '/api/subscribe' when listmonk is live
+export const INSIGHTS_ENABLED = INSIGHTS_SUBSCRIBE_URL.length > 0;
+
 /**
  * Contact + social. Per-site support mailbox (operator provisions it). Social
  * handles are EMPTY until the accounts exist — each footer link renders only

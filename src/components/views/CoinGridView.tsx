@@ -92,6 +92,7 @@ export function CoinGridView() {
       const cam = useTimegridStore.getState().camera;
       viewport.position.set(cam.position.x, cam.position.y);
       viewport.scale.set(cam.zoom);
+      gridMesh?.setCellPx(CELL_SIZE * cam.zoom); // grout appears as cells grow on screen
     }
 
     // Fit the minted DISC into the viewport, centered. Arms a camera target the
@@ -149,26 +150,6 @@ export function CoinGridView() {
       const worldX = (globalX - cam.position.x) / cam.zoom;
       const worldY = (globalY - cam.position.y) / cam.zoom;
       return { gx: Math.round(worldX / CELL_SIZE), gy: Math.round(worldY / CELL_SIZE) };
-    }
-
-    // Block-indexed color LUT: block → its miner color (RGBA8). Sampled in-shader.
-    function buildColorLut(provider: MinerOwnerProvider): {
-      lut: Uint8Array;
-      lutW: number;
-      lutH: number;
-    } {
-      const lutW = 2048;
-      const lutH = Math.max(1, Math.ceil((provider.maxBlock + 1) / lutW));
-      const lut = new Uint8Array(lutW * lutH * 4);
-      for (let b = 0; b <= provider.maxBlock; b++) {
-        const color = provider.colorOfBlock(b);
-        const o = b * 4;
-        lut[o] = (color >> 16) & 0xff;
-        lut[o + 1] = (color >> 8) & 0xff;
-        lut[o + 2] = color & 0xff;
-        lut[o + 3] = 255;
-      }
-      return { lut, lutW, lutH };
     }
 
     // Build the block texture off-thread (worker); fall back to a main-thread
@@ -233,15 +214,11 @@ export function CoinGridView() {
         app.destroy(true, { children: true });
         return;
       }
-      const { lut, lutW, lutH } = buildColorLut(provider);
       gridMesh = createGridMesh({
         blockData: built.data,
         side: built.side,
         radius: built.radius,
         cellSize: CELL_SIZE,
-        colorLut: lut,
-        lutW,
-        lutH,
       });
       viewport.addChild(gridMesh.mesh);
       gridMesh.setCurrentBlock(useTimegridStore.getState().currentBlock);

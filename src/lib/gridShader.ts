@@ -160,8 +160,10 @@ attribute vec3 aColor;
 attribute float aSize;
 attribute float aBirth;
 attribute float aWhale;
+attribute float aIndex;
 varying vec3 vColor;
 varying vec2 vLocal;
+varying float vHover;
 uniform mat3 uProjectionMatrix;
 uniform mat3 uWorldTransformMatrix;
 uniform mat3 uTransformMatrix;
@@ -169,12 +171,16 @@ uniform float uCellSize;
 uniform float uPadding;
 uniform float uCurrentBlock;
 uniform float uShowSmall;
+uniform float uHovered;
 void main() {
   vColor = aColor;
   vLocal = aVert;
+  vHover = abs(aIndex - uHovered) < 0.5 ? 1.0 : 0.0;
   bool hidden = (aBirth > uCurrentBlock) || (uShowSmall < 0.5 && aWhale < 0.5);
   if (hidden) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
-  vec2 world = aOffset * uCellSize + aVert * (aSize * uCellSize * (1.0 - uPadding));
+  // The hovered empire ignores padding (grows to its full cell) so it pops.
+  float pad = vHover > 0.5 ? 0.0 : uPadding;
+  vec2 world = aOffset * uCellSize + aVert * (aSize * uCellSize * (1.0 - pad));
   mat3 mvp = uProjectionMatrix * uWorldTransformMatrix * uTransformMatrix;
   gl_Position = vec4((mvp * vec3(world, 1.0)).xy, 0.0, 1.0);
 }
@@ -184,12 +190,18 @@ const EMPIRE_FRAGMENT = `
 precision highp float;
 varying vec3 vColor;
 varying vec2 vLocal;
+varying float vHover;
 uniform float uRadius;
 void main() {
   // rounded-rect SDF over the unit quad [-0.5, 0.5]
   vec2 q = abs(vLocal) - (0.5 - uRadius);
   float d = length(max(q, 0.0)) - uRadius;
   if (d > 0.0) discard;
+  // Hover: light up the empire's BORDER ring (the only time borders show).
+  if (vHover > 0.5 && d > -0.14) {
+    gl_FragColor = vec4(1.0, 0.96, 0.85, 1.0);
+    return;
+  }
   gl_FragColor = vec4(vColor, 1.0);
 }
 `;
@@ -200,6 +212,8 @@ export interface EmpireMesh {
   setCurrentBlock(block: number): void;
   /** Show wallets below 1000 BTC (the <1000 toggle). */
   setShowSmall(show: boolean): void;
+  /** Light up the border of empire `index` (-1 = none) on hover. */
+  setHovered(index: number): void;
   destroy(): void;
 }
 
@@ -214,6 +228,9 @@ export interface EmpireInstanceData {
 }
 
 export function createEmpireMesh(d: EmpireInstanceData): EmpireMesh {
+  const index = new Float32Array(d.count);
+  for (let i = 0; i < d.count; i++) index[i] = i;
+
   const geometry = new Geometry({
     attributes: {
       aVert: { buffer: new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5]), format: 'float32x2' },
@@ -222,6 +239,7 @@ export function createEmpireMesh(d: EmpireInstanceData): EmpireMesh {
       aSize: { buffer: d.size, format: 'float32', instance: true },
       aBirth: { buffer: d.birth, format: 'float32', instance: true },
       aWhale: { buffer: d.whale, format: 'float32', instance: true },
+      aIndex: { buffer: index, format: 'float32', instance: true },
     },
     indexBuffer: new Uint32Array([0, 1, 2, 0, 2, 3]),
     instanceCount: d.count,
@@ -236,12 +254,13 @@ export function createEmpireMesh(d: EmpireInstanceData): EmpireMesh {
         uCurrentBlock: { value: 1e9, type: 'f32' }, // all revealed until scrubbed
         uShowSmall: { value: 1, type: 'f32' },
         uRadius: { value: 0.28, type: 'f32' },
+        uHovered: { value: -1, type: 'f32' },
       },
     },
   });
   const mesh = new Mesh({ geometry, shader });
   const u = shader.resources.empireUniforms as unknown as {
-    uniforms: { uCurrentBlock: number; uShowSmall: number };
+    uniforms: { uCurrentBlock: number; uShowSmall: number; uHovered: number };
   };
 
   return {
@@ -251,6 +270,9 @@ export function createEmpireMesh(d: EmpireInstanceData): EmpireMesh {
     },
     setShowSmall(show: boolean) {
       u.uniforms.uShowSmall = show ? 1 : 0;
+    },
+    setHovered(idx: number) {
+      u.uniforms.uHovered = idx;
     },
     destroy() {
       mesh.destroy();

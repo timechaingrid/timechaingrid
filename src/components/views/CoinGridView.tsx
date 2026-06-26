@@ -6,6 +6,7 @@ import { loadWalletSubstrate } from '@/data/walletSubstrate';
 import { buildEmpireInstances } from '@/lib/gridEmpireInstances';
 import type { WalletInput } from '@/lib/walletEmpires';
 import { createEmpireMesh, type EmpireMesh } from '@/lib/gridShader';
+import { buildPickIndex, pickEmpire, type PickIndex } from '@/lib/gridEmpirePick';
 import type { BuildEmpireRequest, BuildEmpireResponse } from '@/data/gridEmpireWorker';
 import { useTimegridStore } from '@/store/timegridStore';
 import { BRAND_TAGLINE } from '@/lib/site-config';
@@ -44,6 +45,7 @@ export function CoinGridView() {
     let panStartCam = { x: 0, y: 0 };
     let isPinching = false;
     let lastPinchDist = 0;
+    let pickIndex: PickIndex | null = null;
 
     const { setCamera } = useTimegridStore.getState();
 
@@ -51,6 +53,14 @@ export function CoinGridView() {
       const cam = useTimegridStore.getState().camera;
       viewport.position.set(cam.position.x, cam.position.y);
       viewport.scale.set(cam.zoom);
+    }
+
+    function pixelToCell(globalX: number, globalY: number): { gx: number; gy: number } {
+      const cam = useTimegridStore.getState().camera;
+      return {
+        gx: Math.round((globalX - cam.position.x) / cam.zoom / CELL_SIZE),
+        gy: Math.round((globalY - cam.position.y) / cam.zoom / CELL_SIZE),
+      };
     }
 
     function fitToDisc(radiusCells: number) {
@@ -136,6 +146,7 @@ export function CoinGridView() {
       viewport.addChild(mesh.mesh);
       mesh.setCurrentBlock(useTimegridStore.getState().currentBlock);
       mesh.setShowSmall(showSmall);
+      pickIndex = buildPickIndex(inst.offset, inst.size, inst.count);
       fitToDisc(inst.radius);
       applyCamera();
 
@@ -144,18 +155,27 @@ export function CoinGridView() {
       app.stage.on('pointerdown', (e) => {
         if (isPinching) return;
         isPanning = true;
+        meshRef.current?.setHovered(-1); // clear hover while dragging
         panStart = { x: e.global.x, y: e.global.y };
         panStartCam = { ...useTimegridStore.getState().camera.position };
         app.canvas.style.cursor = 'grabbing';
       });
       app.stage.on('pointermove', (e) => {
-        if (isPinching || !isPanning) return;
-        const cam = useTimegridStore.getState().camera;
-        setCamera({ position: { x: panStartCam.x + (e.global.x - panStart.x), y: panStartCam.y + (e.global.y - panStart.y) }, zoom: cam.zoom });
+        if (isPinching) return;
+        if (isPanning) {
+          const cam = useTimegridStore.getState().camera;
+          setCamera({ position: { x: panStartCam.x + (e.global.x - panStart.x), y: panStartCam.y + (e.global.y - panStart.y) }, zoom: cam.zoom });
+          return;
+        }
+        if (pickIndex) {
+          const { gx, gy } = pixelToCell(e.global.x, e.global.y);
+          meshRef.current?.setHovered(pickEmpire(pickIndex, gx, gy));
+        }
       });
       const endPan = () => { isPanning = false; app.canvas.style.cursor = ''; };
       app.stage.on('pointerup', endPan);
       app.stage.on('pointerupoutside', endPan);
+      app.canvas.addEventListener('pointerleave', () => meshRef.current?.setHovered(-1));
 
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();

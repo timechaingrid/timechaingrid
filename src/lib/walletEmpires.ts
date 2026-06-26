@@ -29,6 +29,8 @@ export interface WalletInput {
 export interface Empire extends WalletInput {
   /** Cells per side (square footprint). */
   side: number;
+  /** Index of this wallet in the original input array (for hover lookup). */
+  origIndex: number;
 }
 
 export interface Placement extends Empire {
@@ -72,7 +74,7 @@ export function cellKey(x: number, y: number): number {
  * The cell→empire Map is opt-in (multi-million-entry at full scale).
  */
 export function packEmpires(wallets: WalletInput[], opts: { cellMap?: boolean } = {}): PackResult {
-  const empires: Empire[] = wallets.map((w) => ({ ...w, side: empireSide(w.btc) }));
+  const empires: Empire[] = wallets.map((w, i) => ({ ...w, side: empireSide(w.btc), origIndex: i }));
   // Biggest first; ties by BTC desc then address (stable, deterministic).
   empires.sort((a, b) => b.side - a.side || b.btc - a.btc || (a.address < b.address ? -1 : 1));
 

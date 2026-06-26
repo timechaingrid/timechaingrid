@@ -20,6 +20,7 @@ export interface BuildEmpireResponse {
   size: ArrayBuffer; // Float32
   birth: ArrayBuffer; // Float32
   whale: ArrayBuffer; // Float32
+  order: ArrayBuffer; // Uint32 instance→original wallet index
   count: number;
   radius: number;
 }
@@ -44,8 +45,9 @@ self.onmessage = (e: MessageEvent<BuildEmpireRequest>) => {
     size: inst.size.buffer as ArrayBuffer,
     birth: inst.birth.buffer as ArrayBuffer,
     whale: inst.whale.buffer as ArrayBuffer,
+    order: inst.order.buffer as ArrayBuffer,
     count: inst.count,
     radius: inst.radius,
   };
-  (self as unknown as Worker).postMessage(msg, [msg.offset, msg.color, msg.size, msg.birth, msg.whale]);
+  (self as unknown as Worker).postMessage(msg, [msg.offset, msg.color, msg.size, msg.birth, msg.whale, msg.order]);
 };

@@ -24,6 +24,8 @@ export interface EmpireInstances {
   birth: Float32Array;
   /** 1 if ≥1000 BTC (whale) else 0 — drives the <1000 BTC toggle. */
   whale: Float32Array;
+  /** instance index → original wallet index (for hover tooltip lookup). */
+  order: Uint32Array;
   count: number;
   /** packed-disc bounding radius (cells), for camera fit. */
   radius: number;
@@ -37,6 +39,7 @@ export function buildEmpireInstances(wallets: WalletInput[]): EmpireInstances {
   const size = new Float32Array(n);
   const birth = new Float32Array(n);
   const whale = new Float32Array(n);
+  const order = new Uint32Array(n);
 
   for (let i = 0; i < n; i++) {
     const p = placements[i];
@@ -49,6 +52,7 @@ export function buildEmpireInstances(wallets: WalletInput[]): EmpireInstances {
     color[i * 3 + 2] = (c & 0xff) / 255;
     birth[i] = p.firstSeenBlock;
     whale[i] = p.btc >= 1000 ? 1 : 0;
+    order[i] = p.origIndex;
   }
-  return { offset, color, size, birth, whale, count: n, radius };
+  return { offset, color, size, birth, whale, order, count: n, radius };
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Application, Container } from 'pixi.js';
 import { loadWalletSubstrate } from '@/data/walletSubstrate';
 import { buildEmpireInstances } from '@/lib/gridEmpireInstances';
+import { roleOf } from '@/lib/gridEmpireTexture';
 import type { WalletInput } from '@/lib/walletEmpires';
 import { createEmpireMesh, type EmpireMesh } from '@/lib/gridShader';
 import { buildPickIndex, pickEmpire, type PickIndex } from '@/lib/gridEmpirePick';
@@ -25,11 +26,25 @@ import { BRAND_TAGLINE } from '@/lib/site-config';
 const CELL_SIZE = 8;
 const BACKGROUND = 0x08080c;
 
+function shortAddr(a: string): string {
+  return a && a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a || '(no address)';
+}
+
+interface HoverInfo {
+  left: number;
+  top: number;
+  addr: string;
+  role: string;
+  btc: number;
+  firstSeenBlock: number;
+}
+
 export function CoinGridView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<EmpireMesh | null>(null);
   const [count, setCount] = useState(0);
   const [showSmall, setShowSmall] = useState(true);
+  const [hover, setHover] = useState<HoverInfo | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -46,6 +61,7 @@ export function CoinGridView() {
     let isPinching = false;
     let lastPinchDist = 0;
     let pickIndex: PickIndex | null = null;
+    let lastHovered = -1;
 
     const { setCamera } = useTimegridStore.getState();
 
@@ -73,7 +89,7 @@ export function CoinGridView() {
     // Pack + emit instances off-thread; fall back to main-thread on worker failure.
     function buildInstances(cols: BuildEmpireRequest): Promise<{
       offset: Float32Array; color: Float32Array; size: Float32Array;
-      birth: Float32Array; whale: Float32Array; count: number; radius: number;
+      birth: Float32Array; whale: Float32Array; order: Uint32Array; count: number; radius: number;
     }> {
       return new Promise((resolve) => {
         const fallback = () => {
@@ -89,7 +105,8 @@ export function CoinGridView() {
             const r = e.data;
             resolve({
               offset: new Float32Array(r.offset), color: new Float32Array(r.color), size: new Float32Array(r.size),
-              birth: new Float32Array(r.birth), whale: new Float32Array(r.whale), count: r.count, radius: r.radius,
+              birth: new Float32Array(r.birth), whale: new Float32Array(r.whale), order: new Uint32Array(r.order),
+              count: r.count, radius: r.radius,
             });
             worker.terminate();
           };
@@ -155,7 +172,9 @@ export function CoinGridView() {
       app.stage.on('pointerdown', (e) => {
         if (isPinching) return;
         isPanning = true;
+        lastHovered = -1;
         meshRef.current?.setHovered(-1); // clear hover while dragging
+        setHover(null);
         panStart = { x: e.global.x, y: e.global.y };
         panStartCam = { ...useTimegridStore.getState().camera.position };
         app.canvas.style.cursor = 'grabbing';
@@ -167,15 +186,30 @@ export function CoinGridView() {
           setCamera({ position: { x: panStartCam.x + (e.global.x - panStart.x), y: panStartCam.y + (e.global.y - panStart.y) }, zoom: cam.zoom });
           return;
         }
-        if (pickIndex) {
-          const { gx, gy } = pixelToCell(e.global.x, e.global.y);
-          meshRef.current?.setHovered(pickEmpire(pickIndex, gx, gy));
-        }
+        if (!pickIndex) return;
+        const { gx, gy } = pixelToCell(e.global.x, e.global.y);
+        const i = pickEmpire(pickIndex, gx, gy);
+        if (i === lastHovered) return;
+        lastHovered = i;
+        meshRef.current?.setHovered(i);
+        if (i < 0) { setHover(null); return; }
+        const w = wallets[inst.order[i]];
+        if (!w) { setHover(null); return; }
+        const btc = Number(w.totalReceivedSats) / 1e8;
+        const cw = container.clientWidth;
+        setHover({
+          left: Math.min(e.global.x + 14, Math.max(8, cw - 250)),
+          top: e.global.y + 14,
+          addr: w.address,
+          role: roleOf({ btc, txCount: w.txCount, isMiner: w.isMiner, firstSeenBlock: w.firstSeenBlock }),
+          btc,
+          firstSeenBlock: w.firstSeenBlock,
+        });
       });
       const endPan = () => { isPanning = false; app.canvas.style.cursor = ''; };
       app.stage.on('pointerup', endPan);
       app.stage.on('pointerupoutside', endPan);
-      app.canvas.addEventListener('pointerleave', () => meshRef.current?.setHovered(-1));
+      app.canvas.addEventListener('pointerleave', () => { lastHovered = -1; meshRef.current?.setHovered(-1); setHover(null); });
 
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
@@ -269,6 +303,23 @@ export function CoinGridView() {
           {showSmall ? '◧ all wallets' : '◧ whales only'}
         </button>
       </div>
+
+      {/* Hover tooltip — the wallet (empire) under the cursor. */}
+      {hover && (
+        <div
+          className="text-mono pointer-events-none absolute z-20 max-w-[240px] rounded-md border border-[color:var(--color-card-border)] bg-[color:var(--color-background)]/95 px-3 py-2 text-[11px] leading-relaxed shadow-lg"
+          style={{ left: hover.left, top: hover.top }}
+        >
+          <div className="font-semibold uppercase tracking-wide" style={{ color: 'var(--color-accent)' }}>
+            {hover.role}
+          </div>
+          <div className="mt-0.5 break-all text-[color:var(--color-text-primary)]">{shortAddr(hover.addr)}</div>
+          <div className="mt-1 text-[color:var(--color-text-muted)]">
+            {hover.btc.toLocaleString(undefined, { maximumFractionDigits: 0 })} BTC received
+          </div>
+          <div className="text-[color:var(--color-text-muted)]">first seen · block {hover.firstSeenBlock.toLocaleString()}</div>
+        </div>
+      )}
 
       <div aria-hidden className="text-mono pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]">
         <span className="tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen">{BRAND_TAGLINE}</span>

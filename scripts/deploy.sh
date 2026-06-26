@@ -123,5 +123,5 @@ echo "▸ deploy to Cloudflare Pages"
 npx wrangler pages deploy out --project-name=timechaingrid --branch=main
 
 echo "✓ deployed."
-echo "  DUCKDB_WASM_BASE = ${NEXT_PUBLIC_DUCKDB_WASM_BASE:-UNSET → /grid is BROKEN in prod (wasm stripped); set it to https://data.timechaingraph.com}"
+echo "  DUCKDB_WASM_BASE = ${WASM_BASE:-UNSET → /grid is BROKEN in prod (wasm stripped); set it to https://data.timechaingraph.com}"
 echo "  WALLET_DATA_BASE = ${WDATA:-UNSET → empire map BROKEN (wallets.parquet stripped); upload via scripts/r2-upload-data.sh + set NEXT_PUBLIC_WALLET_DATA_BASE_URL}"

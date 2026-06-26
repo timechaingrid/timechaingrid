@@ -1,65 +1,43 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Application, Container, Graphics } from 'pixi.js';
-import {
-  inverseSpiral,
-  cumulativeCoins,
-  blockOfCoinIndex,
-  ringForCount,
-} from '@/lib/coinGrid';
+import { Application, Container } from 'pixi.js';
+import { cumulativeCoins, blockOfCoinIndex } from '@/lib/coinGrid';
+import { discIndexOf, discRadius } from '@/lib/discGrid';
+import { buildBlockTexture } from '@/lib/gridTexture';
+import { createGridMesh, type GridMesh } from '@/lib/gridShader';
+import { MinerOwnerProvider } from '@/data/ownerProvider';
+import type { BuildTextureRequest, BuildTextureResponse } from '@/data/gridTextureWorker';
 import {
   loadCoinSubstrate,
   type CoinSubstrate,
   SATOSHI_CLUSTER_KEY,
   SATOSHI_CLUSTER_MAX_BLOCK,
-  SATOSHI_CLUSTER_COLOR,
-  SATOSHI_CLUSTER_IDX,
 } from '@/data/coinSubstrate';
 import { useTimegridStore } from '@/store/timegridStore';
 import { BRAND_TAGLINE } from '@/lib/site-config';
 
 /**
- * CoinGridView — Bitcoin's coin issuance as 2D real-estate, rendered at scale.
+ * CoinGridView — Bitcoin's coin issuance as a CIRCULAR 2D real-estate map.
  *
- * Every whole BTC ever minted is a tile on a deterministic Ulam spiral growing
- * out from Satoshi's genesis coins at the origin. At the tip that's ~19.9M
- * tiles — far too many to materialise. So this renderer NEVER iterates coins:
- * it iterates the VISIBLE viewport cells and inverts each back to its coin
- * (`inverseSpiral(x,y) → mint index → block → miner`). Per-frame cost is bounded
- * by on-screen pixels with an adaptive LOD stride, not by the coin count — the
- * whole grid and a 50-coin genesis cost the same to draw.
+ * Every whole BTC ever minted is a square "pixel" on a deterministic Euclidean
+ * disc (src/lib/discGrid.ts) growing out from Satoshi's genesis at the origin —
+ * a disc, not a square. At the tip that's ~19.9M cells, rendered as ONE GPU
+ * texture (src/lib/gridShader.ts): the renderer no longer iterates coins or
+ * strides an LOD — it bakes the disc into a texture once (off-thread) and draws
+ * a single quad. Square pixels come from nearest-neighbor sampling; the scrubber
+ * is a single shader uniform (a cell shows iff its block ≤ currentBlock).
  *
- * Color = the block's MINER (coinbase recipient): each distinct miner hashes to
- * a hue, so mining pools paint contiguous "territories" as the spiral winds
- * outward. Satoshi's genesis is the brass centerpiece. Halving boundaries draw
- * as concentric gold rings. The scrubber drives `currentBlock`; only coins
- * minted at-or-before it are shown, so playback grows the map from genesis.
+ * Color = the block's MINER (coinbase recipient), via a block-indexed lookup, so
+ * mining pools paint contiguous arcs as the disc winds outward. Hover/click read
+ * back through the disc layout to name the miner. (Empire hover-light + the
+ * Satoshi cluster lens are being re-wired onto the texture path — see
+ * docs/cluster-lattice-design.md.)
  */
 
 const CELL_SIZE = 6; // world px per coin cell at zoom 1.0
 const BACKGROUND = 0x08080c;
-
-// LOD: each DRAWN block should be at least this many device px. As zoom shrinks
-// cells below this, we stride (aggregate stride×stride coins into one tile) so
-// tiles stay chunky-and-spaced rather than collapsing into a fine solid mesh.
-// Bigger value ⇒ pixellates sooner / sparser.
-const LOD_MIN_TILE_PX = 8;
-// Grout: fraction of each tile's span left as the dark gap between tiles. Kept
-// PROPORTIONAL so the empty spaces survive at every LOD level — whether a tile
-// is one coin (zoomed in) or an aggregated block of hundreds (zoomed out).
-const GROUT_FRAC = 0.16;
-// When an empire is highlighted, the rest of the field recedes to this alpha —
-// dimmed but still clearly visible, so focusing a SMALL miner doesn't black out
-// the whole map.
-const DIM_ALPHA = 0.42;
-// Hard ceiling on rects per redraw — the stride is bumped until the visible
-// cell count fits under this, so a full zoom-out of 19.9M coins still draws in
-// one cheap pass.
-const DRAW_BUDGET = 45_000;
-// Per-frame easing fraction for the auto-fit camera — the live camera moves this
-// share of the remaining distance to its target each frame (exponential ease-out
-// ≈ 0.3–0.5s settle at 60fps). Smaller = slower/smoother zoom-out.
+// Per-frame easing fraction for the auto-fit camera (exponential ease-out).
 const CAMERA_LERP = 0.14;
 
 function shortAddr(a: string): string {
@@ -73,13 +51,11 @@ function formatDate(unix: number | undefined): string {
 }
 
 interface HoverInfo {
-  /** pre-clamped tooltip position in container px (computed in the pointer
-   *  handler, where reading the container size is legal — never during render). */
   left: number;
   top: number;
   addr: string;
-  blocks: number; // how many blocks this miner mined (pool size)
-  block: number; // the block that minted the hovered coin
+  blocks: number;
+  block: number;
   date: string;
   isSatoshi: boolean;
 }
@@ -99,23 +75,15 @@ export function CoinGridView() {
     const app = new Application();
     let cancelled = false;
     let appReady = false;
-    let dirty = true; // redraw requested
 
     const viewport = new Container();
-    const gridG = new Graphics(); // the tiles
+    let gridMesh: GridMesh | null = null;
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let panStartCam = { x: 0, y: 0 };
     let isPinching = false;
     let lastPinchDist = 0;
     let substrate: CoinSubstrate | null = null;
-    // Empire-reveal highlight: the miner under the cursor (hover) and a pinned
-    // miner (click). hover takes precedence; falls back to the pin when idle.
-    let hoverMinerIdx = -1;
-    let pinnedMinerIdx = -1;
-    // Smooth auto-fit: fitToMinted arms a camera TARGET; the ticker eases the
-    // live camera toward it each frame so the zoom-out tracks the growing grid
-    // continuously instead of snapping. null = settled / user-controlled.
     let targetCam: { position: { x: number; y: number }; zoom: number } | null = null;
 
     const { setCurrentBlock, setLatestBlock, setCamera } = useTimegridStore.getState();
@@ -126,18 +94,13 @@ export function CoinGridView() {
       viewport.scale.set(cam.zoom);
     }
 
-    // Fit the minted region into the viewport, centered. Called on play-start
-    // and (while playing) on each block so the camera zooms out as the lattice
-    // grows — the signature "watch the map expand" motion. When paused the user
-    // owns the camera. By default it ARMS a target the ticker eases toward (so
-    // the zoom-out is smooth + continuous); `instant` snaps (first-paint only).
+    // Fit the minted DISC into the viewport, centered. Arms a camera target the
+    // ticker eases toward (smooth zoom-out as the disc grows); `instant` snaps.
     function fitToMinted(instant = false) {
       if (!appReady || !substrate) return;
-      const block = useTimegridStore.getState().currentBlock;
-      const total = cumulativeCoins(block);
+      const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
       if (total <= 0) return;
-      const ring = Math.max(1, ringForCount(total));
-      const radiusPx = ring * CELL_SIZE;
+      const radiusPx = Math.max(1, discRadius(total)) * CELL_SIZE;
       const viewportSize = Math.min(app.screen.width, app.screen.height);
       const fitZoom = Math.min(6, Math.max(0.02, (viewportSize / (2 * radiusPx)) * 0.82));
       const target = {
@@ -148,16 +111,10 @@ export function CoinGridView() {
         targetCam = null;
         setCamera(target);
       } else {
-        targetCam = target; // ticker eases the live camera toward it
+        targetCam = target;
       }
     }
 
-    // Ease the live camera one frame toward targetCam (exponential ease-out).
-    // Driven by the ticker while a target is armed; commits to the store each
-    // frame so hover/pan math + drawGrid all read a consistent camera. Snaps and
-    // clears the target once within a sub-pixel / sub-permille threshold. As the
-    // grid grows during playback the target recedes every block, so the camera
-    // continuously chases it — a smooth, tracking zoom-out rather than a snap.
     function stepCameraAnimation() {
       if (!targetCam) return;
       const cam = useTimegridStore.getState().camera;
@@ -175,137 +132,89 @@ export function CoinGridView() {
       });
     }
 
-    // Does the whole minted grid currently fit inside the viewport? Drives the
-    // auto-fit decision during playback: only re-fit (snap to hold the entire
-    // grid) once the grid has grown to OVERFLOW the screen. While it still fits
-    // — i.e. the user is zoomed out far enough to see all of it — leave the
-    // camera alone so playback doesn't yank it back to center every block.
+    // Does the whole minted disc currently fit inside the viewport? Drives the
+    // auto-fit decision during playback (only re-fit once it overflows).
     function gridFitsViewport(): boolean {
       if (!appReady) return true;
       const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
       if (total <= 0) return true;
-      const R = (ringForCount(total) + 0.5) * CELL_SIZE;
+      const R = (discRadius(total) + 0.5) * CELL_SIZE;
       const gridPx = 2 * R * useTimegridStore.getState().camera.zoom;
       return gridPx <= Math.min(app.screen.width, app.screen.height);
     }
 
-    // The heart: iterate visible cells, invert to coins, draw. Bounded by the
-    // draw budget via an adaptive stride; clamped to the minted ring so we never
-    // sweep empty space when zoomed out.
-    function drawGrid() {
-      if (!appReady || !substrate) return;
-      const cam = useTimegridStore.getState().camera;
-      const block = useTimegridStore.getState().currentBlock;
-      const total = cumulativeCoins(block);
-      gridG.clear();
-      if (total <= 0 || cam.zoom <= 0) return;
-
-      const maxRing = ringForCount(total);
-      const W = app.screen.width;
-      const H = app.screen.height;
-
-      // Visible world rect → grid-cell rect, clamped to the minted square.
-      const worldLeft = (0 - cam.position.x) / cam.zoom;
-      const worldRight = (W - cam.position.x) / cam.zoom;
-      const worldTop = (0 - cam.position.y) / cam.zoom;
-      const worldBottom = (H - cam.position.y) / cam.zoom;
-      let gxLo = Math.max(-maxRing, Math.floor(worldLeft / CELL_SIZE) - 1);
-      const gxHi = Math.min(maxRing, Math.ceil(worldRight / CELL_SIZE) + 1);
-      let gyLo = Math.max(-maxRing, Math.floor(worldTop / CELL_SIZE) - 1);
-      const gyHi = Math.min(maxRing, Math.ceil(worldBottom / CELL_SIZE) + 1);
-      if (gxHi < gxLo || gyHi < gyLo) return;
-
-      // LOD stride: keep each drawn block ≥ LOD_MIN_TILE_PX device px (so tiles
-      // stay chunky + spaced, never a fine mesh); then bump further if needed to
-      // fit the draw budget.
-      const effCell = CELL_SIZE * cam.zoom;
-      let stride = Math.max(1, Math.ceil(LOD_MIN_TILE_PX / effCell));
-      const cellsX = (gxHi - gxLo) / stride + 1;
-      const cellsY = (gyHi - gyLo) / stride + 1;
-      if (cellsX * cellsY > DRAW_BUDGET) {
-        const scale = Math.sqrt((cellsX * cellsY) / DRAW_BUDGET);
-        stride = Math.max(stride, Math.ceil(stride * scale));
-      }
-
-      // Snap iteration origin to the stride lattice so blocks tile cleanly.
-      gxLo -= ((gxLo % stride) + stride) % stride;
-      gyLo -= ((gyLo % stride) + stride) % stride;
-
-      const span = stride * CELL_SIZE;
-      const half = CELL_SIZE / 2;
-
-      // Mosaic grout — PROPORTIONAL to the tile span, so the empty spaces are
-      // part of the LOD: they persist whether a tile is one coin (zoomed in) or
-      // an aggregated block of hundreds (zoomed out). Rounded corners only once
-      // a drawn block is big enough on screen for the rounding to read.
-      const drawnPx = stride * effCell; // on-screen size of one drawn block
-      const gap = span * GROUT_FRAC;
-      const tile = span - 2 * gap;
-      const radius = drawnPx >= 6 ? tile * 0.22 : 0;
-
-      // Empire reveal: when a miner is hovered (or pinned) its tiles stay bright
-      // and everything else recedes — the pool's whole territory lights up
-      // across every ring it owns. Idle (no highlight): muted field + bright
-      // empires, with the growing frontier glowing.
-      const highlightIdx = hoverMinerIdx !== -1 ? hoverMinerIdx : pinnedMinerIdx;
-      const hl = highlightIdx !== -1;
-      const frontierBlock = block - 144;
-      const clusterOn = useTimegridStore.getState().satoshiCluster;
-
-      for (let gy = gyLo; gy <= gyHi; gy += stride) {
-        for (let gx = gxLo; gx <= gxHi; gx += stride) {
-          const n = inverseSpiral(gx, gy);
-          if (n < 0 || n >= total) continue;
-          const b = blockOfCoinIndex(n);
-          const idx = substrate.minerIdxAt(b);
-          // When the Satoshi cluster is on, the early single-address era is one
-          // synthetic entity — paint it Satoshi-orange regardless of lens.
-          const inCluster = clusterOn && b <= SATOSHI_CLUSTER_MAX_BLOCK;
-          let color = inCluster ? SATOSHI_CLUSTER_COLOR : substrate.minerColor(idx);
-          let alpha = 1;
-          if (hl) {
-            const matches =
-              highlightIdx === SATOSHI_CLUSTER_IDX ? inCluster : !inCluster && idx === highlightIdx;
-            if (matches) color = lighten(color, 0.3);
-            else alpha = DIM_ALPHA; // recede but stay visible
-          } else if (b >= frontierBlock) {
-            color = lighten(color, 0.3); // growing edge glows
-          }
-          const x0 = gx * CELL_SIZE - half + gap;
-          const y0 = gy * CELL_SIZE - half + gap;
-          if (radius > 0) gridG.roundRect(x0, y0, tile, tile, radius);
-          else gridG.rect(x0, y0, tile, tile);
-          gridG.fill({ color, alpha });
-        }
-      }
-    }
-
+    // World pixel → disc cell (integer lattice coordinate).
     function pixelToCell(globalX: number, globalY: number): { gx: number; gy: number } {
       const cam = useTimegridStore.getState().camera;
       const worldX = (globalX - cam.position.x) / cam.zoom;
       const worldY = (globalY - cam.position.y) / cam.zoom;
-      return {
-        gx: Math.round(worldX / CELL_SIZE),
-        gy: Math.round(worldY / CELL_SIZE),
-      };
+      return { gx: Math.round(worldX / CELL_SIZE), gy: Math.round(worldY / CELL_SIZE) };
+    }
+
+    // Block-indexed color LUT: block → its miner color (RGBA8). Sampled in-shader.
+    function buildColorLut(provider: MinerOwnerProvider): {
+      lut: Uint8Array;
+      lutW: number;
+      lutH: number;
+    } {
+      const lutW = 2048;
+      const lutH = Math.max(1, Math.ceil((provider.maxBlock + 1) / lutW));
+      const lut = new Uint8Array(lutW * lutH * 4);
+      for (let b = 0; b <= provider.maxBlock; b++) {
+        const color = provider.colorOfBlock(b);
+        const o = b * 4;
+        lut[o] = (color >> 16) & 0xff;
+        lut[o + 1] = (color >> 8) & 0xff;
+        lut[o + 2] = color & 0xff;
+        lut[o + 3] = 255;
+      }
+      return { lut, lutW, lutH };
+    }
+
+    // Build the block texture off-thread (worker); fall back to a main-thread
+    // build if the worker can't be constructed (brief freeze, but always renders).
+    function buildBlockTextureAsync(
+      totalCoins: number,
+    ): Promise<{ data: Uint8Array; side: number; radius: number }> {
+      return new Promise((resolve) => {
+        const fallback = () => {
+          const t = buildBlockTexture(totalCoins);
+          resolve({ data: t.data, side: t.side, radius: t.radius });
+        };
+        try {
+          const worker = new Worker(
+            new URL('../../data/gridTextureWorker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          worker.onmessage = (e: MessageEvent<BuildTextureResponse>) => {
+            resolve({ data: new Uint8Array(e.data.data), side: e.data.side, radius: e.data.radius });
+            worker.terminate();
+          };
+          worker.onerror = () => {
+            worker.terminate();
+            fallback();
+          };
+          worker.postMessage({ totalCoins } satisfies BuildTextureRequest);
+        } catch {
+          fallback();
+        }
+      });
     }
 
     void (async () => {
       const loaded = await loadCoinSubstrate();
       if (cancelled) return;
       substrate = loaded;
-      // Seed scrubber bounds once. Open at the tip (full grid); Playback's
-      // autoStart rewinds to genesis and plays if untouched.
       if (useTimegridStore.getState().latestBlock === 0) {
         setLatestBlock(loaded.tipBlock);
         setCurrentBlock(loaded.tipBlock);
       }
-      setSub(loaded); // surface to React (counter + BlockStats real dates)
+      setSub(loaded);
 
       await app.init({
         resizeTo: container,
         background: BACKGROUND,
-        antialias: true, // soften tile edges + rounded mosaic corners
+        antialias: false, // crisp square pixels — no edge softening on the mosaic
         resolution: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
         autoDensity: true,
       });
@@ -315,11 +224,28 @@ export function CoinGridView() {
       }
       container.appendChild(app.canvas);
       appReady = true;
-
-      viewport.addChild(gridG);
       app.stage.addChild(viewport);
 
-      // Fresh camera → fit the full minted grid on first paint (snap, no ease).
+      // Bake the circular disc into one texture and draw it as a single quad.
+      const provider = new MinerOwnerProvider(loaded);
+      const built = await buildBlockTextureAsync(provider.totalCoins);
+      if (cancelled) {
+        app.destroy(true, { children: true });
+        return;
+      }
+      const { lut, lutW, lutH } = buildColorLut(provider);
+      gridMesh = createGridMesh({
+        blockData: built.data,
+        side: built.side,
+        radius: built.radius,
+        cellSize: CELL_SIZE,
+        colorLut: lut,
+        lutW,
+        lutH,
+      });
+      viewport.addChild(gridMesh.mesh);
+      gridMesh.setCurrentBlock(useTimegridStore.getState().currentBlock);
+
       const initCam = useTimegridStore.getState().camera;
       if (initCam.position.x === 0 && initCam.position.y === 0 && initCam.zoom === 1) {
         fitToMinted(true);
@@ -332,7 +258,7 @@ export function CoinGridView() {
       app.stage.on('pointerdown', (e) => {
         if (isPinching) return;
         isPanning = true;
-        targetCam = null; // grabbing the camera cancels any in-flight auto-fit
+        targetCam = null;
         panStart = { x: e.global.x, y: e.global.y };
         panStartCam = { ...useTimegridStore.getState().camera.position };
         app.canvas.style.cursor = 'grabbing';
@@ -340,31 +266,21 @@ export function CoinGridView() {
       app.stage.on('pointermove', (e) => {
         if (isPinching) return;
         if (isPanning) {
-          // Panning the map does NOT pause playback — the scrubber keeps
-          // advancing while the user drags around to explore.
           const dx = e.global.x - panStart.x;
           const dy = e.global.y - panStart.y;
           const cam = useTimegridStore.getState().camera;
           setCamera({ position: { x: panStartCam.x + dx, y: panStartCam.y + dy }, zoom: cam.zoom });
           return;
         }
-        // Hover → which coin / miner is under the cursor.
         if (!substrate) return;
         const { gx, gy } = pixelToCell(e.global.x, e.global.y);
-        const n = inverseSpiral(gx, gy);
-        const block = useTimegridStore.getState().currentBlock;
-        const total = cumulativeCoins(block);
+        const n = discIndexOf(gx, gy);
+        const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
         if (n >= 0 && n < total) {
           const b = blockOfCoinIndex(n);
           const inCluster =
             useTimegridStore.getState().satoshiCluster && b <= SATOSHI_CLUSTER_MAX_BLOCK;
           const idx = substrate.minerIdxAt(b);
-          const hIdx = inCluster ? SATOSHI_CLUSTER_IDX : idx;
-          if (hIdx !== hoverMinerIdx) {
-            hoverMinerIdx = hIdx; // ignite this empire (or the whole cluster)
-            dirty = true;
-          }
-          // Clamp here (reading container size is fine in an event handler).
           const cw = container.clientWidth;
           const cs = inCluster ? substrate.satoshiClusterStats() : null;
           setHover({
@@ -377,23 +293,16 @@ export function CoinGridView() {
             isSatoshi: cs ? true : substrate.isSatoshi(idx),
           });
         } else {
-          if (hoverMinerIdx !== -1) {
-            hoverMinerIdx = -1;
-            dirty = true;
-          }
           setHover(null);
         }
       });
       const endPan = (e: { global: { x: number; y: number } }) => {
-        const moved =
-          Math.abs(e.global.x - panStart.x) + Math.abs(e.global.y - panStart.y);
+        const moved = Math.abs(e.global.x - panStart.x) + Math.abs(e.global.y - panStart.y);
         isPanning = false;
         app.canvas.style.cursor = '';
-        // A tap (negligible movement) pins/unpins the empire under the cursor,
-        // so its territory stays lit without holding the hover.
         if (moved < 3 && substrate) {
           const { gx, gy } = pixelToCell(e.global.x, e.global.y);
-          const n = inverseSpiral(gx, gy);
+          const n = discIndexOf(gx, gy);
           const total = cumulativeCoins(useTimegridStore.getState().currentBlock);
           const store = useTimegridStore.getState();
           if (n >= 0 && n < total) {
@@ -402,30 +311,20 @@ export function CoinGridView() {
             const key = inCluster
               ? SATOSHI_CLUSTER_KEY
               : substrate.minerAddr(substrate.minerIdxAt(b));
-            // Toggle focus: click the focused miner again to release it. Opens
-            // the inspector panel. pinnedMinerIdx + redraw follow the
-            // selectedWallet subscription below.
             store.setSelectedWallet(store.selectedWallet === key ? null : key);
           } else {
-            store.setSelectedWallet(null); // click empty space → release focus
+            store.setSelectedWallet(null);
           }
         }
       };
       app.stage.on('pointerup', endPan);
       app.stage.on('pointerupoutside', endPan);
-      app.canvas.addEventListener('pointerleave', () => {
-        if (hoverMinerIdx !== -1) {
-          hoverMinerIdx = -1;
-          dirty = true;
-        }
-        setHover(null);
-      });
+      app.canvas.addEventListener('pointerleave', () => setHover(null));
 
       const onWheel = (event: WheelEvent) => {
         event.preventDefault();
-        targetCam = null; // manual zoom cancels any in-flight auto-fit
+        targetCam = null;
         const cam = useTimegridStore.getState().camera;
-        // Zoom toward the cursor: keep the world point under the pointer fixed.
         const delta = -event.deltaY * 0.0015;
         const nextZoom = Math.max(0.02, Math.min(40, cam.zoom * (1 + delta)));
         const rect = app.canvas.getBoundingClientRect();
@@ -439,9 +338,8 @@ export function CoinGridView() {
         });
       };
       app.canvas.addEventListener('wheel', onWheel, { passive: false });
-      (app.canvas as HTMLCanvasElement & { _onWheel?: typeof onWheel })._onWheel = onWheel;
 
-      // Pinch-to-zoom for touch screens (same-axis as wheel zoom).
+      // Pinch-to-zoom for touch screens.
       const ZOOM_MIN_GRID = 0.02;
       const ZOOM_MAX_GRID = 40;
       function getTouchDistGrid(t: TouchList): number {
@@ -449,10 +347,7 @@ export function CoinGridView() {
         const dy = t[0].clientY - t[1].clientY;
         return Math.sqrt(dx * dx + dy * dy);
       }
-      function getTouchMidGrid(
-        t: TouchList,
-        rect: DOMRect,
-      ): { x: number; y: number } {
+      function getTouchMidGrid(t: TouchList, rect: DOMRect): { x: number; y: number } {
         return {
           x: (t[0].clientX + t[1].clientX) / 2 - rect.left,
           y: (t[0].clientY + t[1].clientY) / 2 - rect.top,
@@ -478,10 +373,7 @@ export function CoinGridView() {
         const scale = newDist / lastPinchDist;
         lastPinchDist = newDist;
         const cam = useTimegridStore.getState().camera;
-        const nextZoom = Math.max(
-          ZOOM_MIN_GRID,
-          Math.min(ZOOM_MAX_GRID, cam.zoom * scale),
-        );
+        const nextZoom = Math.max(ZOOM_MIN_GRID, Math.min(ZOOM_MAX_GRID, cam.zoom * scale));
         const rect = app.canvas.getBoundingClientRect();
         const mid = getTouchMidGrid(e.touches, rect);
         const wx = (mid.x - cam.position.x) / cam.zoom;
@@ -490,7 +382,6 @@ export function CoinGridView() {
           position: { x: mid.x - wx * nextZoom, y: mid.y - wy * nextZoom },
           zoom: nextZoom,
         });
-        dirty = true;
       };
       const onGridTouchEnd = (e: TouchEvent): void => {
         if (e.touches.length < 2) {
@@ -504,85 +395,52 @@ export function CoinGridView() {
         _onTouchMove?: typeof onGridTouchMove;
         _onTouchEnd?: typeof onGridTouchEnd;
       };
+      c._onWheel = onWheel;
       c._onTouchStart = onGridTouchStart;
       c._onTouchMove = onGridTouchMove;
       c._onTouchEnd = onGridTouchEnd;
-      app.canvas.addEventListener('touchstart', onGridTouchStart, {
-        passive: false,
-      });
-      app.canvas.addEventListener('touchmove', onGridTouchMove, {
-        passive: false,
-      });
+      app.canvas.addEventListener('touchstart', onGridTouchStart, { passive: false });
+      app.canvas.addEventListener('touchmove', onGridTouchMove, { passive: false });
       app.canvas.addEventListener('touchend', onGridTouchEnd);
       app.canvas.addEventListener('touchcancel', onGridTouchEnd);
 
-      // Redraw only when dirty — the ticker is cheap when idle, and a redraw
-      // rebuilds up to DRAW_BUDGET rects (sub-frame even at Max playback).
+      // The mesh auto-renders each frame; the ticker only eases the camera.
       app.ticker.add(() => {
-        if (targetCam) stepCameraAnimation(); // eases the camera; setCamera marks dirty
-        if (!dirty) return;
-        dirty = false;
-        drawGrid();
+        if (targetCam) stepCameraAnimation();
       });
-      dirty = true;
     })();
 
     const unsubBlock = useTimegridStore.subscribe((state, prev) => {
       if (state.currentBlock !== prev.currentBlock) {
-        // While playing, follow the growth — but only re-arm the fit when the
-        // grid has outgrown the viewport. If the user is zoomed out enough that
-        // the whole grid still fits, leave the camera alone (no per-block
-        // re-center). When it overflows, the ticker smoothly eases the camera
-        // out to keep holding the whole grid as it grows.
+        gridMesh?.setCurrentBlock(state.currentBlock);
         if (state.playbackPlaying && !gridFitsViewport()) fitToMinted();
-        dirty = true;
       }
     });
     const unsubCam = useTimegridStore.subscribe((state, prev) => {
-      if (state.camera !== prev.camera) {
-        applyCamera();
-        dirty = true;
-      }
+      if (state.camera !== prev.camera) applyCamera();
     });
     const unsubPlay = useTimegridStore.subscribe((state, prev) => {
       if (!prev.playbackPlaying && state.playbackPlaying) {
-        fitToMinted(); // smooth ease into frame on play
-        dirty = true;
+        fitToMinted();
       } else if (prev.playbackPlaying && !state.playbackPlaying) {
-        targetCam = null; // pausing hands the camera back to the user immediately
-      }
-    });
-    // Keep the empire highlight in lockstep with the focused miner — whether the
-    // selection changed from a canvas click or the inspector's release button.
-    const unsubSel = useTimegridStore.subscribe((state, prev) => {
-      if (state.selectedWallet !== prev.selectedWallet) {
-        pinnedMinerIdx = !state.selectedWallet
-          ? -1
-          : state.selectedWallet === SATOSHI_CLUSTER_KEY
-            ? SATOSHI_CLUSTER_IDX
-            : substrate
-              ? substrate.idxOf(state.selectedWallet)
-              : -1;
-        dirty = true;
+        targetCam = null;
       }
     });
     const unsubCluster = useTimegridStore.subscribe((state, prev) => {
       if (state.satoshiCluster !== prev.satoshiCluster) {
-        // Releasing the cluster while it's the focused entity clears the stale pin.
         if (!state.satoshiCluster && state.selectedWallet === SATOSHI_CLUSTER_KEY) {
           useTimegridStore.getState().setSelectedWallet(null);
         }
-        dirty = true;
       }
     });
 
     return () => {
       cancelled = true;
       unsubBlock();
-      unsubSel();
       unsubCluster();
       unsubCam();
       unsubPlay();
+      gridMesh?.destroy();
       if (appReady) {
         const canvas = app.canvas as
           | (HTMLCanvasElement & {
@@ -594,10 +452,8 @@ export function CoinGridView() {
           | undefined;
         if (canvas?._onWheel) canvas.removeEventListener('wheel', canvas._onWheel);
         if (canvas) {
-          if (canvas._onTouchStart)
-            canvas.removeEventListener('touchstart', canvas._onTouchStart);
-          if (canvas._onTouchMove)
-            canvas.removeEventListener('touchmove', canvas._onTouchMove);
+          if (canvas._onTouchStart) canvas.removeEventListener('touchstart', canvas._onTouchStart);
+          if (canvas._onTouchMove) canvas.removeEventListener('touchmove', canvas._onTouchMove);
           if (canvas._onTouchEnd) {
             canvas.removeEventListener('touchend', canvas._onTouchEnd);
             canvas.removeEventListener('touchcancel', canvas._onTouchEnd);
@@ -620,11 +476,9 @@ export function CoinGridView() {
       ref={containerRef}
       className="relative h-full w-full cursor-grab active:cursor-grabbing"
       style={{ touchAction: 'none' }}
-      aria-label="Timechain Grid — every Bitcoin rendered as a tile on a deterministic spiral, colored by the mining pool that minted it. Drag to pan, pinch to zoom, tap a tile to see its miner."
+      aria-label="Timechain Grid — every Bitcoin rendered as a square pixel on a deterministic disc, colored by the mining pool that minted it. Drag to pan, pinch to zoom, tap a pixel to see its miner."
     >
-      {/* Radial vignette — darkens the periphery so the lattice reads with
-          depth instead of as a flat pixel sheet. Sits above the canvas, below
-          the HUD; transparent center keeps the active region crisp. */}
+      {/* Radial vignette — darkens the periphery so the lattice reads with depth. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[1]"
@@ -717,20 +571,9 @@ export function CoinGridView() {
           / {totalCoins.toLocaleString()}
         </span>
         <span className="normal-case tracking-normal text-[9px] text-[color:var(--color-text-muted)]/70">
-          hover a tile → reveal its empire · click to pin
+          hover a pixel → its miner · click to pin
         </span>
       </div>
     </div>
   );
-}
-
-/** Lighten a packed 0xRRGGBB toward white by `amount` (0..1). */
-function lighten(hex: number, amount: number): number {
-  const r = (hex >> 16) & 0xff;
-  const g = (hex >> 8) & 0xff;
-  const b = hex & 0xff;
-  const lr = Math.round(r + (255 - r) * amount);
-  const lg = Math.round(g + (255 - g) * amount);
-  const lb = Math.round(b + (255 - b) * amount);
-  return (lr << 16) | (lg << 8) | lb;
 }

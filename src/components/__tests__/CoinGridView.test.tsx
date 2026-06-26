@@ -2,28 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { CoinGridView } from '../views/CoinGridView';
 
-// The renderer now loads its data asynchronously via the DuckDB-Wasm-backed
-// coinSubstrate (a real fetch + worker), neither of which exists under jsdom.
-// Mock the data layer so the test exercises the HUD chrome (the synchronous
-// render path) without touching the network or a Web Worker. A minimal stub
-// satisfies every accessor the effect calls after mount.
-vi.mock('@/data/coinSubstrate', () => {
-  const stub = {
-    tipBlock: 0,
-    minerCount: 1,
-    ready: true,
-    minerIdxAt: () => 0,
-    minerAddr: () => '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-    minerColor: () => 0xc28840,
-    minerBlockCount: () => 1,
-    isSatoshi: () => true,
-    blockTime: () => 1_231_006_505,
-  };
-  return {
-    loadCoinSubstrate: vi.fn().mockResolvedValue(stub),
-    getLoadedCoinSubstrate: vi.fn().mockReturnValue(stub),
-  };
-});
+// The renderer now loads the wallet table asynchronously via DuckDB-Wasm (a real
+// fetch + worker), neither of which exists under jsdom. Mock the data layer so
+// the test exercises the HUD chrome (the synchronous render path) without
+// touching the network. An empty wallet set is enough to render the overlay.
+vi.mock('@/data/walletSubstrate', () => ({
+  loadWalletSubstrate: vi.fn().mockResolvedValue({ tipBlock: 0, wallets: [] }),
+}));
 
 vi.mock('pixi.js', () => {
   class StageLike {
@@ -89,8 +74,8 @@ describe('<CoinGridView>', () => {
     expect(container.textContent).toContain('Bitcoin Visualised');
   });
 
-  it('shows a coin counter in the HUD overlay', () => {
+  it('shows an empire counter in the HUD overlay', () => {
     const { container } = render(<CoinGridView />);
-    expect(container.textContent).toContain('Coins');
+    expect(container.textContent).toContain('Empires');
   });
 });

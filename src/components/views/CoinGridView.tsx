@@ -288,7 +288,9 @@ export function CoinGridView() {
       app.canvas.addEventListener('touchmove', onTouchMove, { passive: false });
       app.canvas.addEventListener('touchend', onTouchEnd);
       app.canvas.addEventListener('touchcancel', onTouchEnd);
-    })();
+    })().catch((err) => {
+      if (!cancelled) console.warn('[grid] wallet-empire load failed:', err);
+    });
 
     const unsubBlock = useTimegridStore.subscribe((state, prev) => {
       if (state.currentBlock !== prev.currentBlock) drawEmpires();

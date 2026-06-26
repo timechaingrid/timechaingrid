@@ -34,7 +34,15 @@ let _instance: WalletData | null = null;
 let _loading: Promise<WalletData> | null = null;
 
 async function load(): Promise<WalletData> {
-  const baseUrl = process.env.NEXT_PUBLIC_DATA_BASE_URL || '/data/v0.2.0';
+  // The 28MB wallets.parquet exceeds Cloudflare Pages' 25MB cap, so in prod it's
+  // served from R2 (data.timechaingraph.com) via its OWN knob — kept distinct
+  // from coinSubstrate's NEXT_PUBLIC_DATA_BASE_URL so moving the empire map to R2
+  // never silently repoints the (v0.1.0, same-origin) block substrate. Absolute
+  // base ⇒ abs() below ignores the page origin and range-reads straight from R2.
+  const baseUrl =
+    process.env.NEXT_PUBLIC_WALLET_DATA_BASE_URL ||
+    process.env.NEXT_PUBLIC_DATA_BASE_URL ||
+    '/data/v0.2.0';
   const manifest: Manifest = await fetch(`${baseUrl}/manifest.json`).then((r) => {
     if (!r.ok) throw new Error(`manifest fetch failed: ${r.status}`);
     return r.json();

@@ -141,6 +141,48 @@ the privacy posture (no third-party CDN).
    to use the bucket URL as `cdnBase`. Until then, the adapter is
    stubbed; the visible cost is zero.
 
+## E.1 — Empire-map data on R2 (the implemented path)
+
+> Supersedes the Section-E sketch above (which predates the wallet-empire
+> pivot — there is no `timechain-data` bucket or `BitcoinChainAdapter`).
+
+The Civ-6 empire map (`/grid`) loads `v0.2.0/wallets.parquet` (28 MB) — the
+only bundle file over Cloudflare Pages' 25 MB cap. It's served from the **same
+R2 bucket as the DuckDB wasm** (`data.timechaingraph.com`, bucket
+`timechaingraph-data`) and stripped from the Pages upload by `scripts/deploy.sh`.
+
+**Operator runbook** (needs Cloudflare auth — `npx wrangler login` once):
+
+```bash
+# 1. Upload the bundle to R2 (idempotent; re-run after any rebuild).
+BUCKET=timechaingraph-data VERSION=v0.2.0 ./scripts/r2-upload-data.sh
+
+# 2. Deploy. .env.production already points the map at R2 via
+#    NEXT_PUBLIC_WALLET_DATA_BASE_URL=https://data.timechaingraph.com/data/v0.2.0
+npm run deploy
+```
+
+`deploy.sh` enforces two guards so a half-finished ship can't go out:
+
+- **strip + require** — if `out/data` carries any > 25 MB file, the deploy
+  aborts unless `NEXT_PUBLIC_WALLET_DATA_BASE_URL` is set (else `/grid` 404s on
+  the stripped parquet).
+- **R2 reachability** — before deploying it HEADs `…/v0.2.0/wallets.parquet`
+  and aborts if the byte size doesn't match the build. This is the data
+  analogue of the DuckDB-wasm version guard — it catches "deployed but forgot
+  to upload."
+
+The small bundles (`v0.1.0/*` for `coinSubstrate`, plus
+`v0.2.0/{manifest,timestamps,block-miners}`) stay **same-origin** — only the
+one > 25 MB parquet lives on R2. CORS is already applied to the shared bucket
+(`r2-cors.json` — `timechaingrid.com` + `range` reads), so no CORS change is
+needed for the data.
+
+**Verify on `/grid`** (DevTools → Network): `wallets.parquet` from
+`data.timechaingraph.com`, everything else from the page origin;
+`npm run privacy-audit` stays green (a first-party R2 bucket is not a
+third-party CDN).
+
 ## F. Privacy audit on production
 
 After every deploy, sanity-check that no third-party domain leaked in:

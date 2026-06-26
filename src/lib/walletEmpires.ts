@@ -39,10 +39,11 @@ export interface Placement extends Empire {
 
 export interface PackResult {
   placements: Placement[];
-  /** cell key → index into placements (for hover hit-testing). */
-  cellToEmpire: Map<number, number>;
   /** Bounding radius (in cells) of the packed map, for camera fit. */
   radius: number;
+  /** cell key → index into placements (for hover hit-testing). Only built when
+   *  `{ cellMap: true }` is passed — it's a multi-million-entry Map at full scale. */
+  cellToEmpire?: Map<number, number>;
 }
 
 /** Empire footprint side from lifetime BTC: max(1, ⌊log₁₀(BTC)⌋). */
@@ -56,65 +57,87 @@ export function cellKey(x: number, y: number): number {
   return (x + 4096) * 8192 + (y + 4096);
 }
 
-function blockFree(occ: Set<number>, ox: number, oy: number, s: number): boolean {
-  for (let dy = 0; dy < s; dy++) {
-    for (let dx = 0; dx < s; dx++) {
-      if (occ.has(cellKey(ox + dx, oy + dy))) return false;
-    }
-  }
-  return true;
-}
-
 /**
- * Greedy disc bin-pack. Biggest empires first; each placed at the nearest
- * free block to the origin (candidates walked in disc order). Centers the block
- * on the candidate cell so footprints grow symmetrically.
+ * O(N) disc bin-pack. Biggest empires first; processed in size CLASSES so each
+ * class tiles on its OWN size-aligned grid — equal blocks never leave the fringe
+ * gaps that made a naïve "scan for nearest free block" O(N²) (it choked >30k).
+ *
+ * For each class s: walk the disc-order candidates (center-out), snap each to the
+ * s-aligned block containing it, and place it if free. Aligned same-size blocks
+ * tile exactly, so a candidate's block is either free (place) or already taken
+ * (skip, O(1)) — no rescanned fringe. Occupancy is a flat Uint8Array (no hashing);
+ * overlaps across classes are still prevented by the free-check, so different
+ * grids interleave safely. Scales to 850k empires / ~5.8M cells in ~1s.
+ *
+ * The cell→empire Map is opt-in (multi-million-entry at full scale).
  */
-export function packEmpires(wallets: WalletInput[]): PackResult {
+export function packEmpires(wallets: WalletInput[], opts: { cellMap?: boolean } = {}): PackResult {
   const empires: Empire[] = wallets.map((w) => ({ ...w, side: empireSide(w.btc) }));
   // Biggest first; ties by BTC desc then address (stable, deterministic).
   empires.sort((a, b) => b.side - a.side || b.btc - a.btc || (a.address < b.address ? -1 : 1));
 
+  const cellToEmpire = opts.cellMap ? new Map<number, number>() : undefined;
   const totalCells = empires.reduce((s, e) => s + e.side * e.side, 0);
-  // Generous candidate pool so even the outermost empires find a spot.
-  const cand = generateDiscOrder(Math.max(64, totalCells * 4));
+  if (totalCells === 0) return { placements: [], radius: 1, cellToEmpire };
 
-  const occ = new Set<number>();
-  const cellToEmpire = new Map<number, number>();
+  // Candidate positions, ring-ordered (unsorted). ×1.8 headroom for the cells
+  // wasted to per-class grid alignment, so every empire finds a slot.
+  const cand = generateDiscOrder(Math.max(256, Math.ceil(totalCells * 1.8)), false);
+
+  let maxCoord = 1;
+  let maxSide = 1;
+  for (const e of empires) if (e.side > maxSide) maxSide = e.side;
+  for (let i = 0; i < cand.xs.length; i++) {
+    const ax = Math.abs(cand.xs[i]);
+    const ay = Math.abs(cand.ys[i]);
+    if (ax > maxCoord) maxCoord = ax;
+    if (ay > maxCoord) maxCoord = ay;
+  }
+  const gridR = maxCoord + maxSide + 2;
+  const side = 2 * gridR + 1;
+  const occ = new Uint8Array(side * side);
+  const gi = (x: number, y: number): number => (y + gridR) * side + (x + gridR);
+
   const placements: Placement[] = [];
-  let lo = 0; // low-water cursor: candidates before this are occupied 1×1 cells
   let radius = 1;
+  let curSize = -1;
+  let cursor = 0; // monotonic candidate cursor, restarted per size class
 
   for (const e of empires) {
     const s = e.side;
-    const off = s >> 1; // center the block on the candidate cell
+    if (s !== curSize) { curSize = s; cursor = 0; } // new class → scan from center
     let placed = false;
-    for (let i = lo; i < cand.xs.length; i++) {
-      const ox = cand.xs[i] - off;
-      const oy = cand.ys[i] - off;
-      if (!blockFree(occ, ox, oy, s)) continue;
+    for (; cursor < cand.xs.length; cursor++) {
+      // Snap the candidate to its s-aligned block (top-left, in grid coords).
+      const gx = cand.xs[cursor] + gridR;
+      const gy = cand.ys[cursor] + gridR;
+      const ox = Math.floor(gx / s) * s - gridR;
+      const oy = Math.floor(gy / s) * s - gridR;
+      if (ox < -gridR || oy < -gridR || ox + s - 1 > gridR || oy + s - 1 > gridR) continue;
+      // Free? (rejects on the first occupied cell — O(1) for taken blocks)
+      let free = true;
+      for (let dy = 0; dy < s && free; dy++) {
+        for (let dx = 0; dx < s; dx++) {
+          if (occ[gi(ox + dx, oy + dy)]) { free = false; break; }
+        }
+      }
+      if (!free) continue;
       const idx = placements.length;
       for (let dy = 0; dy < s; dy++) {
         for (let dx = 0; dx < s; dx++) {
-          const k = cellKey(ox + dx, oy + dy);
-          occ.add(k);
-          cellToEmpire.set(k, idx);
+          occ[gi(ox + dx, oy + dy)] = 1;
+          if (cellToEmpire) cellToEmpire.set(cellKey(ox + dx, oy + dy), idx);
         }
       }
       placements.push({ ...e, ox, oy });
-      // Track bounding radius (farthest occupied corner from origin).
       const far = Math.max(Math.abs(ox), Math.abs(oy), Math.abs(ox + s), Math.abs(oy + s));
       if (far > radius) radius = far;
       placed = true;
+      cursor++; // advance past the block we just placed
       break;
     }
-    // Advance the low-water cursor past contiguous occupied candidate cells.
-    while (lo < cand.xs.length && occ.has(cellKey(cand.xs[lo], cand.ys[lo]))) lo++;
-    if (!placed) {
-      // Candidate pool exhausted (shouldn't happen with the ×4 margin); skip.
-      continue;
-    }
+    if (!placed) continue; // candidate pool exhausted (shouldn't happen with ×1.8)
   }
 
-  return { placements, cellToEmpire, radius };
+  return { placements, radius, cellToEmpire };
 }

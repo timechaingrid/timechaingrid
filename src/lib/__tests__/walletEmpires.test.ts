@@ -40,14 +40,15 @@ describe('walletEmpires — packEmpires', () => {
 
   it('never overlaps — occupied cells exactly equal the sum of footprints', () => {
     const wallets = makeWallets(800);
-    const { placements, cellToEmpire } = packEmpires(wallets);
+    const { placements, cellToEmpire } = packEmpires(wallets, { cellMap: true });
     const expectedCells = placements.reduce((s, p) => s + p.side * p.side, 0);
-    expect(cellToEmpire.size).toBe(expectedCells);
+    expect(cellToEmpire).toBeDefined();
+    expect(cellToEmpire!.size).toBe(expectedCells);
     // And each placement's own cells map back to itself.
     placements.forEach((p, idx) => {
       for (let dy = 0; dy < p.side; dy++) {
         for (let dx = 0; dx < p.side; dx++) {
-          expect(cellToEmpire.get(cellKey(p.ox + dx, p.oy + dy))).toBe(idx);
+          expect(cellToEmpire!.get(cellKey(p.ox + dx, p.oy + dy))).toBe(idx);
         }
       }
     });

@@ -34,7 +34,7 @@ let _instance: WalletData | null = null;
 let _loading: Promise<WalletData> | null = null;
 
 async function load(): Promise<WalletData> {
-  const baseUrl = process.env.NEXT_PUBLIC_DATA_BASE_URL || '/data/v0.1.0';
+  const baseUrl = process.env.NEXT_PUBLIC_DATA_BASE_URL || '/data/v0.2.0';
   const manifest: Manifest = await fetch(`${baseUrl}/manifest.json`).then((r) => {
     if (!r.ok) throw new Error(`manifest fetch failed: ${r.status}`);
     return r.json();

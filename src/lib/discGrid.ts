@@ -94,7 +94,10 @@ export function discIndexOf(x: number, y: number): number {
  * issuance). Bucket-by-ring then per-ring angle sort: avoids one giant
  * comparator sort over millions of cells.
  */
-export function generateDiscOrder(count: number): { xs: Int16Array; ys: Int16Array } {
+export function generateDiscOrder(
+  count: number,
+  sorted = true,
+): { xs: Int16Array; ys: Int16Array } {
   if (count <= 0) return { xs: new Int16Array(0), ys: new Int16Array(0) };
   const R = discRadius(count) + 2; // margin so the disc up to ring R holds ≥ count
 
@@ -125,7 +128,10 @@ export function generateDiscOrder(count: number): { xs: Int16Array; ys: Int16Arr
     }
   }
 
-  // Pass 3 — sort each ring slice by (angle, x, y).
+  // Pass 3 — sort each ring slice by (angle, x, y). Skipped in `sorted=false`
+  // mode (used for packing candidates, where ring-order alone suffices and the
+  // per-ring sort is the cost driver at millions of cells).
+  if (!sorted) return { xs: xs.subarray(0, count), ys: ys.subarray(0, count) };
   for (let r = 0; r <= R; r++) {
     const s = ringStart[r];
     const e = ringStart[r + 1];

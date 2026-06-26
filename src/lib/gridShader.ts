@@ -146,3 +146,56 @@ export function createGridMesh(opts: GridMeshOptions): GridMesh {
     },
   };
 }
+
+// --- Empire map: render a pre-baked color texture (one texel = one cell's
+// empire color; A=presence). Borders are baked in, so the fragment is a plain
+// nearest-neighbor sample + alpha cut. See gridEmpireTexture.ts. ---
+
+const EMPIRE_FRAGMENT = `
+precision highp float;
+varying vec2 vUV;
+uniform sampler2D uTex;
+void main() {
+  vec4 c = texture2D(uTex, vUV);
+  if (c.a < 0.5) discard;   // cell not owned by any empire
+  gl_FragColor = vec4(c.rgb, 1.0);
+}
+`;
+
+export interface EmpireMesh {
+  mesh: Mesh<MeshGeometry, Shader>;
+  destroy(): void;
+}
+
+/** A textured quad over the packed empire disc. `colorData` is side×side RGBA8. */
+export function createEmpireMesh(opts: {
+  colorData: Uint8Array;
+  side: number;
+  radius: number;
+  cellSize: number;
+}): EmpireMesh {
+  const { colorData, side, radius, cellSize } = opts;
+  const tex = Texture.from({ resource: colorData, width: side, height: side });
+  tex.source.scaleMode = 'nearest';
+
+  const half = (radius + 0.5) * cellSize;
+  const geometry = new MeshGeometry({
+    positions: new Float32Array([-half, -half, half, -half, half, half, -half, half]),
+    uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
+    indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+  });
+
+  const shader = new Shader({
+    glProgram: new GlProgram({ vertex: VERTEX, fragment: EMPIRE_FRAGMENT }),
+    resources: { uTex: tex.source },
+  });
+  const mesh = new Mesh({ geometry, shader });
+
+  return {
+    mesh,
+    destroy() {
+      mesh.destroy();
+      tex.destroy(true);
+    },
+  };
+}

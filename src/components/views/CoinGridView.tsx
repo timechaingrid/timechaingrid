@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Application, Container } from 'pixi.js';
 import { loadWalletSubstrate } from '@/data/walletSubstrate';
-import { buildEmpireTexture } from '@/lib/gridEmpireTexture';
+import { buildEmpireInstances } from '@/lib/gridEmpireInstances';
 import type { WalletInput } from '@/lib/walletEmpires';
 import { createEmpireMesh, type EmpireMesh } from '@/lib/gridShader';
 import type { BuildEmpireRequest, BuildEmpireResponse } from '@/data/gridEmpireWorker';
@@ -13,21 +13,22 @@ import { BRAND_TAGLINE } from '@/lib/site-config';
 /**
  * CoinGridView — Bitcoin as a Civ-6 empire map.
  *
- * Every wallet that ever received ≥1 BTC is an empire occupying a square block
- * of cells sized by holdings (side = ⌊log₁₀(BTC)⌋): whales tower at the center,
- * the long tail of smaller holders rings outward. ~850k empires (~5.8M cells) —
- * far too many for rects, so they're packed + baked into ONE GPU texture
- * (off-thread; src/data/gridEmpireWorker.ts) and drawn as a single quad with
- * nearest-neighbor sampling for crisp territories. Color = role, brightness =
- * holdings, baked borders mark each territory. See docs/cluster-lattice-design.md.
+ * Every wallet that ever received ≥1 BTC is an empire: a rounded square sized by
+ * holdings (side = ⌊log₁₀(BTC)⌋), packed with whales at the center and the long
+ * tail ringing outward. ~850k empires drawn as GPU INSTANCES (one rounded shape
+ * each, with padding) — no LOD, no lag. The scrubber reveals empires at their
+ * birth block; a toggle hides wallets below 1000 BTC. See gridEmpireInstances.ts
+ * + gridShader.ts::createEmpireMesh.
  */
 
-const CELL_SIZE = 8; // world px per grid cell at zoom 1.0
+const CELL_SIZE = 8;
 const BACKGROUND = 0x08080c;
 
 export function CoinGridView() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const meshRef = useRef<EmpireMesh | null>(null);
   const [count, setCount] = useState(0);
+  const [showSmall, setShowSmall] = useState(true);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -38,7 +39,6 @@ export function CoinGridView() {
     let appReady = false;
 
     const viewport = new Container();
-    let mesh: EmpireMesh | null = null;
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let panStartCam = { x: 0, y: 0 };
@@ -60,27 +60,29 @@ export function CoinGridView() {
       setCamera({ position: { x: app.screen.width / 2, y: app.screen.height / 2 }, zoom });
     }
 
-    // Pack + bake the empire texture off-thread; fall back to main-thread on
-    // worker failure (a brief freeze, but always renders).
-    function buildTexture(cols: BuildEmpireRequest): Promise<BuildEmpireResponse> {
+    // Pack + emit instances off-thread; fall back to main-thread on worker failure.
+    function buildInstances(cols: BuildEmpireRequest): Promise<{
+      offset: Float32Array; color: Float32Array; size: Float32Array;
+      birth: Float32Array; whale: Float32Array; count: number; radius: number;
+    }> {
       return new Promise((resolve) => {
         const fallback = () => {
           const wallets: WalletInput[] = new Array(cols.firstSeen.length);
           for (let i = 0; i < wallets.length; i++) {
-            wallets[i] = {
-              address: String(i),
-              firstSeenBlock: cols.firstSeen[i],
-              btc: cols.btc[i],
-              txCount: cols.txCount[i],
-              isMiner: cols.isMiner[i] === 1,
-            };
+            wallets[i] = { address: String(i), firstSeenBlock: cols.firstSeen[i], btc: cols.btc[i], txCount: cols.txCount[i], isMiner: cols.isMiner[i] === 1 };
           }
-          const t = buildEmpireTexture(wallets);
-          resolve({ data: t.data.buffer as ArrayBuffer, side: t.side, radius: t.radius, count: t.count });
+          resolve(buildEmpireInstances(wallets));
         };
         try {
           const worker = new Worker(new URL('../../data/gridEmpireWorker.ts', import.meta.url), { type: 'module' });
-          worker.onmessage = (e: MessageEvent<BuildEmpireResponse>) => { resolve(e.data); worker.terminate(); };
+          worker.onmessage = (e: MessageEvent<BuildEmpireResponse>) => {
+            const r = e.data;
+            resolve({
+              offset: new Float32Array(r.offset), color: new Float32Array(r.color), size: new Float32Array(r.size),
+              birth: new Float32Array(r.birth), whale: new Float32Array(r.whale), count: r.count, radius: r.radius,
+            });
+            worker.terminate();
+          };
           worker.onerror = (ev) => { console.warn('[grid] worker error → fallback:', ev.message); worker.terminate(); fallback(); };
           worker.postMessage(cols, [cols.firstSeen.buffer, cols.btc.buffer, cols.txCount.buffer, cols.isMiner.buffer]);
         } catch (err) {
@@ -99,7 +101,6 @@ export function CoinGridView() {
         store.setCurrentBlock(tipBlock);
       }
 
-      // Columns → worker (transferred zero-copy).
       const n = wallets.length;
       const firstSeen = new Int32Array(n);
       const btc = new Float64Array(n);
@@ -111,33 +112,31 @@ export function CoinGridView() {
         txCount[i] = wallets[i].txCount;
         isMiner[i] = wallets[i].isMiner ? 1 : 0;
       }
-      const baked = await buildTexture({ firstSeen, btc, txCount, isMiner });
+      const inst = await buildInstances({ firstSeen, btc, txCount, isMiner });
       if (cancelled) return;
-      if (!cancelled) setCount(baked.count);
+      if (!cancelled) setCount(inst.count);
 
       await app.init({
         resizeTo: container,
         background: BACKGROUND,
-        antialias: false, // crisp square cells
+        antialias: true, // smooth the rounded corners
         resolution: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
         autoDensity: true,
       });
-      if (cancelled) {
-        app.destroy(true, { children: true });
-        return;
-      }
+      if (cancelled) { app.destroy(true, { children: true }); return; }
       container.appendChild(app.canvas);
       appReady = true;
       app.stage.addChild(viewport);
 
-      mesh = createEmpireMesh({
-        colorData: new Uint8Array(baked.data),
-        side: baked.side,
-        radius: baked.radius,
-        cellSize: CELL_SIZE,
+      const mesh = createEmpireMesh({
+        offset: inst.offset, color: inst.color, size: inst.size,
+        birth: inst.birth, whale: inst.whale, count: inst.count, cellSize: CELL_SIZE,
       });
+      meshRef.current = mesh;
       viewport.addChild(mesh.mesh);
-      fitToDisc(baked.radius);
+      mesh.setCurrentBlock(useTimegridStore.getState().currentBlock);
+      mesh.setShowSmall(showSmall);
+      fitToDisc(inst.radius);
       applyCamera();
 
       app.stage.eventMode = 'static';
@@ -152,10 +151,7 @@ export function CoinGridView() {
       app.stage.on('pointermove', (e) => {
         if (isPinching || !isPanning) return;
         const cam = useTimegridStore.getState().camera;
-        setCamera({
-          position: { x: panStartCam.x + (e.global.x - panStart.x), y: panStartCam.y + (e.global.y - panStart.y) },
-          zoom: cam.zoom,
-        });
+        setCamera({ position: { x: panStartCam.x + (e.global.x - panStart.x), y: panStartCam.y + (e.global.y - panStart.y) }, zoom: cam.zoom });
       });
       const endPan = () => { isPanning = false; app.canvas.style.cursor = ''; };
       app.stage.on('pointerup', endPan);
@@ -181,8 +177,7 @@ export function CoinGridView() {
         e.preventDefault();
         const nd = dist(e.touches);
         if (lastPinchDist <= 0) { lastPinchDist = nd; return; }
-        const scale = nd / lastPinchDist;
-        lastPinchDist = nd;
+        const scale = nd / lastPinchDist; lastPinchDist = nd;
         const cam = useTimegridStore.getState().camera;
         const nextZoom = Math.max(0.01, Math.min(60, cam.zoom * scale));
         const rect = app.canvas.getBoundingClientRect();
@@ -199,22 +194,23 @@ export function CoinGridView() {
       app.canvas.addEventListener('touchmove', onTM, { passive: false });
       app.canvas.addEventListener('touchend', onTE);
       app.canvas.addEventListener('touchcancel', onTE);
-    })().catch((err) => {
-      if (!cancelled) console.warn('[grid] empire map load failed:', err);
-    });
+    })().catch((err) => { if (!cancelled) console.warn('[grid] empire map load failed:', err); });
 
+    const unsubBlock = useTimegridStore.subscribe((state, prev) => {
+      if (state.currentBlock !== prev.currentBlock) meshRef.current?.setCurrentBlock(state.currentBlock);
+    });
     const unsubCam = useTimegridStore.subscribe((state, prev) => {
       if (state.camera !== prev.camera) applyCamera();
     });
 
     return () => {
       cancelled = true;
+      unsubBlock();
       unsubCam();
-      mesh?.destroy();
+      meshRef.current?.destroy();
+      meshRef.current = null;
       if (appReady) {
-        const canvas = app.canvas as HTMLCanvasElement & {
-          _onWheel?: (e: WheelEvent) => void; _onTS?: (e: TouchEvent) => void; _onTM?: (e: TouchEvent) => void; _onTE?: (e: TouchEvent) => void;
-        };
+        const canvas = app.canvas as HTMLCanvasElement & { _onWheel?: (e: WheelEvent) => void; _onTS?: (e: TouchEvent) => void; _onTM?: (e: TouchEvent) => void; _onTE?: (e: TouchEvent) => void; };
         if (canvas?._onWheel) canvas.removeEventListener('wheel', canvas._onWheel);
         if (canvas?._onTS) canvas.removeEventListener('touchstart', canvas._onTS);
         if (canvas?._onTM) canvas.removeEventListener('touchmove', canvas._onTM);
@@ -222,7 +218,13 @@ export function CoinGridView() {
         try { app.destroy(true, { children: true }); } catch { /* double-destroy in dev strict-mode */ }
       }
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleSmall() {
+    const next = !showSmall;
+    setShowSmall(next);
+    meshRef.current?.setShowSmall(next);
+  }
 
   return (
     <div
@@ -231,24 +233,27 @@ export function CoinGridView() {
       style={{ touchAction: 'none' }}
       aria-label="Timechain Grid — every wallet that ever held ≥1 BTC as an empire, sized by holdings, whales at the center. Drag to pan, pinch to zoom."
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1]"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 50%, rgba(4,4,8,0.78) 100%)' }}
-      />
-      <div
-        aria-hidden
-        className="text-mono pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]"
-      >
-        <span className="tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen">
-          {BRAND_TAGLINE}
-        </span>
-        <span className="text-[color:var(--color-text-muted)]">
-          Empires <span className="text-[color:var(--color-text-primary)]">{count.toLocaleString()}</span>
-        </span>
-        <span className="normal-case tracking-normal text-[9px] text-[color:var(--color-text-muted)]/70">
-          whales center · holders outward
-        </span>
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(4,4,8,0.7) 100%)' }} />
+
+      {/* <1000 BTC visibility toggle */}
+      <div className="absolute top-3 left-[296px] z-10">
+        <button
+          type="button"
+          onClick={toggleSmall}
+          aria-pressed={showSmall}
+          className={[
+            'brass-panel text-mono rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors',
+            showSmall ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text-secondary)]',
+          ].join(' ')}
+        >
+          {showSmall ? '◧ all wallets' : '◧ whales only'}
+        </button>
+      </div>
+
+      <div aria-hidden className="text-mono pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-1 text-[10px] uppercase tracking-[0.22em]">
+        <span className="tracking-[0.28em] text-[color:var(--color-accent)] mix-blend-screen">{BRAND_TAGLINE}</span>
+        <span className="text-[color:var(--color-text-muted)]">Empires <span className="text-[color:var(--color-text-primary)]">{count.toLocaleString()}</span></span>
+        <span className="normal-case tracking-normal text-[9px] text-[color:var(--color-text-muted)]/70">whales center · holders outward</span>
       </div>
     </div>
   );

@@ -1,13 +1,10 @@
 /// <reference lib="webworker" />
 /**
- * gridEmpireWorker — pack + bake the wallet-empire texture off the main thread.
- *
- * Packing 850k empires (~5.8M cells) and baking a ~2,700² RGBA texture would
- * freeze the UI; this runs it in a worker and transfers the buffer back zero-copy.
- * Receives the wallet columns as typed arrays (addresses aren't needed for the
- * texture; index stands in for the deterministic tie-break). See gridEmpireTexture.ts.
+ * gridEmpireWorker — pack 850k wallets and emit per-empire INSTANCE arrays off
+ * the main thread, transferred zero-copy. Receives the wallet columns as typed
+ * arrays (index stands in for the address tie-break). See gridEmpireInstances.ts.
  */
-import { buildEmpireTexture } from '@/lib/gridEmpireTexture';
+import { buildEmpireInstances } from '@/lib/gridEmpireInstances';
 import type { WalletInput } from '@/lib/walletEmpires';
 
 export interface BuildEmpireRequest {
@@ -18,10 +15,13 @@ export interface BuildEmpireRequest {
 }
 
 export interface BuildEmpireResponse {
-  data: ArrayBuffer;
-  side: number;
-  radius: number;
+  offset: ArrayBuffer; // Float32 [x,y,…]
+  color: ArrayBuffer; // Float32 [r,g,b,…]
+  size: ArrayBuffer; // Float32
+  birth: ArrayBuffer; // Float32
+  whale: ArrayBuffer; // Float32
   count: number;
+  radius: number;
 }
 
 self.onmessage = (e: MessageEvent<BuildEmpireRequest>) => {
@@ -37,12 +37,15 @@ self.onmessage = (e: MessageEvent<BuildEmpireRequest>) => {
       isMiner: isMiner[i] === 1,
     };
   }
-  const tex = buildEmpireTexture(wallets);
+  const inst = buildEmpireInstances(wallets);
   const msg: BuildEmpireResponse = {
-    data: tex.data.buffer as ArrayBuffer,
-    side: tex.side,
-    radius: tex.radius,
-    count: tex.count,
+    offset: inst.offset.buffer as ArrayBuffer,
+    color: inst.color.buffer as ArrayBuffer,
+    size: inst.size.buffer as ArrayBuffer,
+    birth: inst.birth.buffer as ArrayBuffer,
+    whale: inst.whale.buffer as ArrayBuffer,
+    count: inst.count,
+    radius: inst.radius,
   };
-  (self as unknown as Worker).postMessage(msg, [msg.data]);
+  (self as unknown as Worker).postMessage(msg, [msg.offset, msg.color, msg.size, msg.birth, msg.whale]);
 };

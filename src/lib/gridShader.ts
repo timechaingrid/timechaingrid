@@ -20,7 +20,7 @@
  * GLSL ES 1.00 — the form PixiJS v8 GlProgram accepts (per the filter docs); the
  * mesh transform uniforms are injected by the Mesh pipe.
  */
-import { GlProgram, Mesh, MeshGeometry, Shader, Texture } from 'pixi.js';
+import { Geometry, GlProgram, Mesh, MeshGeometry, Shader, Texture } from 'pixi.js';
 
 const VERTEX = `
 attribute vec2 aPosition;
@@ -147,55 +147,113 @@ export function createGridMesh(opts: GridMeshOptions): GridMesh {
   };
 }
 
-// --- Empire map: render a pre-baked color texture (one texel = one cell's
-// empire color; A=presence). Borders are baked in, so the fragment is a plain
-// nearest-neighbor sample + alpha cut. See gridEmpireTexture.ts. ---
+// --- Empire map: one ROUNDED-SQUARE instance per empire (GPU instancing). Each
+// instance is drawn smaller than its cell (padding) with rounded corners; the
+// scrubber (uCurrentBlock vs per-instance birth) and the <1000 BTC toggle
+// (uShowSmall vs per-instance whale flag) hide instances in-shader — no CPU
+// per-frame work. See gridEmpireInstances.ts. ---
+
+const EMPIRE_VERTEX = `
+attribute vec2 aVert;
+attribute vec2 aOffset;
+attribute vec3 aColor;
+attribute float aSize;
+attribute float aBirth;
+attribute float aWhale;
+varying vec3 vColor;
+varying vec2 vLocal;
+uniform mat3 uProjectionMatrix;
+uniform mat3 uWorldTransformMatrix;
+uniform mat3 uTransformMatrix;
+uniform float uCellSize;
+uniform float uPadding;
+uniform float uCurrentBlock;
+uniform float uShowSmall;
+void main() {
+  vColor = aColor;
+  vLocal = aVert;
+  bool hidden = (aBirth > uCurrentBlock) || (uShowSmall < 0.5 && aWhale < 0.5);
+  if (hidden) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+  vec2 world = aOffset * uCellSize + aVert * (aSize * uCellSize * (1.0 - uPadding));
+  mat3 mvp = uProjectionMatrix * uWorldTransformMatrix * uTransformMatrix;
+  gl_Position = vec4((mvp * vec3(world, 1.0)).xy, 0.0, 1.0);
+}
+`;
 
 const EMPIRE_FRAGMENT = `
 precision highp float;
-varying vec2 vUV;
-uniform sampler2D uTex;
+varying vec3 vColor;
+varying vec2 vLocal;
+uniform float uRadius;
 void main() {
-  vec4 c = texture2D(uTex, vUV);
-  if (c.a < 0.5) discard;   // cell not owned by any empire
-  gl_FragColor = vec4(c.rgb, 1.0);
+  // rounded-rect SDF over the unit quad [-0.5, 0.5]
+  vec2 q = abs(vLocal) - (0.5 - uRadius);
+  float d = length(max(q, 0.0)) - uRadius;
+  if (d > 0.0) discard;
+  gl_FragColor = vec4(vColor, 1.0);
 }
 `;
 
 export interface EmpireMesh {
-  mesh: Mesh<MeshGeometry, Shader>;
+  mesh: Mesh<Geometry, Shader>;
+  /** Reveal empires born at or before `block` (scrubber). */
+  setCurrentBlock(block: number): void;
+  /** Show wallets below 1000 BTC (the <1000 toggle). */
+  setShowSmall(show: boolean): void;
   destroy(): void;
 }
 
-/** A textured quad over the packed empire disc. `colorData` is side×side RGBA8. */
-export function createEmpireMesh(opts: {
-  colorData: Uint8Array;
-  side: number;
-  radius: number;
+export interface EmpireInstanceData {
+  offset: Float32Array; // [x,y,…] cell centers
+  color: Float32Array; // [r,g,b,…] 0..1
+  size: Float32Array; // side (cells)
+  birth: Float32Array; // first-seen block
+  whale: Float32Array; // 1 = ≥1000 BTC
+  count: number;
   cellSize: number;
-}): EmpireMesh {
-  const { colorData, side, radius, cellSize } = opts;
-  const tex = Texture.from({ resource: colorData, width: side, height: side });
-  tex.source.scaleMode = 'nearest';
+}
 
-  const half = (radius + 0.5) * cellSize;
-  const geometry = new MeshGeometry({
-    positions: new Float32Array([-half, -half, half, -half, half, half, -half, half]),
-    uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
-    indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+export function createEmpireMesh(d: EmpireInstanceData): EmpireMesh {
+  const geometry = new Geometry({
+    attributes: {
+      aVert: { buffer: new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5]), format: 'float32x2' },
+      aOffset: { buffer: d.offset, format: 'float32x2', instance: true },
+      aColor: { buffer: d.color, format: 'float32x3', instance: true },
+      aSize: { buffer: d.size, format: 'float32', instance: true },
+      aBirth: { buffer: d.birth, format: 'float32', instance: true },
+      aWhale: { buffer: d.whale, format: 'float32', instance: true },
+    },
+    indexBuffer: new Uint32Array([0, 1, 2, 0, 2, 3]),
+    instanceCount: d.count,
   });
 
   const shader = new Shader({
-    glProgram: new GlProgram({ vertex: VERTEX, fragment: EMPIRE_FRAGMENT }),
-    resources: { uTex: tex.source },
+    glProgram: new GlProgram({ vertex: EMPIRE_VERTEX, fragment: EMPIRE_FRAGMENT }),
+    resources: {
+      empireUniforms: {
+        uCellSize: { value: d.cellSize, type: 'f32' },
+        uPadding: { value: 0.18, type: 'f32' },
+        uCurrentBlock: { value: 1e9, type: 'f32' }, // all revealed until scrubbed
+        uShowSmall: { value: 1, type: 'f32' },
+        uRadius: { value: 0.28, type: 'f32' },
+      },
+    },
   });
   const mesh = new Mesh({ geometry, shader });
+  const u = shader.resources.empireUniforms as unknown as {
+    uniforms: { uCurrentBlock: number; uShowSmall: number };
+  };
 
   return {
     mesh,
+    setCurrentBlock(block: number) {
+      u.uniforms.uCurrentBlock = block;
+    },
+    setShowSmall(show: boolean) {
+      u.uniforms.uShowSmall = show ? 1 : 0;
+    },
     destroy() {
       mesh.destroy();
-      tex.destroy(true);
     },
   };
 }

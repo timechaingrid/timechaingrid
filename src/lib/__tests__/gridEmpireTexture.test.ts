@@ -11,12 +11,26 @@ describe('gridEmpireTexture — roles & color', () => {
     expect(roleOf({ btc: 0.1, txCount: 1, isMiner: false, firstSeenBlock: 100 })).toBe('dust');
   });
 
-  it('empireFill returns a 24-bit color, brighter for bigger holders', () => {
-    const dust = empireFill({ address: 'a', firstSeenBlock: 1, btc: 1, txCount: 1, isMiner: false });
-    const whale = empireFill({ address: 'b', firstSeenBlock: 1, btc: 1_000_000, txCount: 1, isMiner: false });
-    expect(dust).toBeGreaterThanOrEqual(0);
-    expect(dust).toBeLessThanOrEqual(0xffffff);
-    expect(whale).toBeGreaterThanOrEqual(0);
+  const green = (c: number) => (c >> 8) & 0xff;
+
+  it('empireFill returns an in-range 24-bit color', () => {
+    const c = empireFill({ address: 'a', firstSeenBlock: 1, btc: 1, txCount: 1, isMiner: false });
+    expect(c).toBeGreaterThanOrEqual(0);
+    expect(c).toBeLessThanOrEqual(0xffffff);
+  });
+
+  it('floors the dimming so the significant/dust outer band stays legible', () => {
+    // significant cyan = 0x32c8e0 (green channel 0xc8). A 1-BTC holder (t=0) is
+    // dimmed the most; the 0.35 floor must keep ≥60% of the base hue (the old
+    // 0.6 dimming kept only 40% → it vanished into the near-black field).
+    const small = empireFill({ address: 'a', firstSeenBlock: 1, btc: 1, txCount: 1, isMiner: false });
+    expect(green(small)).toBeGreaterThanOrEqual(Math.round(0xc8 * 0.6));
+  });
+
+  it('still ramps brighter with holdings within a role (wealth gradient)', () => {
+    const poor = empireFill({ address: 'a', firstSeenBlock: 1, btc: 1, txCount: 1, isMiner: false });   // significant
+    const rich = empireFill({ address: 'b', firstSeenBlock: 1, btc: 900, txCount: 1, isMiner: false }); // significant
+    expect(green(rich)).toBeGreaterThan(green(poor));
   });
 });
 

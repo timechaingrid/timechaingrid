@@ -42,8 +42,13 @@ function darken(hex: number, amount: number): number {
  *  smaller holders so the field reads as a wealth gradient (not a washed sheet). */
 export function empireFill(w: WalletInput): number {
   const base = ROLE_COLOR[roleOf(w)];
-  const t = Math.min(1, Math.max(0, Math.log10(Math.max(1, w.btc)) / 6)); // 0 (1 BTC) → 1 (1M)
-  return darken(base, (1 - t) * 0.6); // small holders up to 60% darker
+  const t = Math.min(1, Math.max(0, Math.log10(Math.max(1, w.btc)) / 6)); // 0 (≤1 BTC) → 1 (1M)
+  // Wealth gradient within a role, but FLOOR the dimming so the significant
+  // (cyan) / dust (grey) outer band stays legible against the near-black field.
+  // Was 0.6 — small holders up to 60% darker, which sank them into the
+  // background and left only the undimmed gold whale core showing ("one gold
+  // mass"). 0.35 keeps the ramp but never drops a holder below ~65% of its hue.
+  return darken(base, (1 - t) * 0.35);
 }
 
 export interface EmpireTexture {

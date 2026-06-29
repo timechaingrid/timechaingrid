@@ -22,7 +22,7 @@ export interface EmpireInstances {
   size: Float32Array;
   /** first-seen block per empire (scrubber reveal). */
   birth: Float32Array;
-  /** 1 if ≥1000 BTC (whale) else 0 — drives the <1000 BTC toggle. */
+  /** 1 if ≥1000 BTC or a miner — stays visible in "whales & miners" mode. */
   whale: Float32Array;
   /** instance index → original wallet index (for hover tooltip lookup). */
   order: Uint32Array;
@@ -51,7 +51,7 @@ export function buildEmpireInstances(wallets: WalletInput[]): EmpireInstances {
     color[i * 3 + 1] = ((c >> 8) & 0xff) / 255;
     color[i * 3 + 2] = (c & 0xff) / 255;
     birth[i] = p.firstSeenBlock;
-    whale[i] = p.btc >= 1000 ? 1 : 0;
+    whale[i] = p.btc >= 1000 || p.isMiner ? 1 : 0;
     order[i] = p.origIndex;
   }
   return { offset, color, size, birth, whale, order, count: n, radius };

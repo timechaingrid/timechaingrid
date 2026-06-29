@@ -289,7 +289,7 @@ export function CoinGridView() {
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(4,4,8,0.7) 100%)' }} />
 
-      {/* <1000 BTC visibility toggle */}
+      {/* all wallets / whales+miners visibility toggle */}
       <div className="absolute top-3 left-[296px] z-10">
         <button
           type="button"
@@ -300,7 +300,7 @@ export function CoinGridView() {
             showSmall ? 'text-[color:var(--color-accent)]' : 'text-[color:var(--color-text-muted)] hover:text-[color:var(--color-text-secondary)]',
           ].join(' ')}
         >
-          {showSmall ? '◧ all wallets' : '◧ whales only'}
+          {showSmall ? '◧ all wallets' : '◧ whales & miners'}
         </button>
       </div>
 

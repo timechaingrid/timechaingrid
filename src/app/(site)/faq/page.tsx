@@ -36,7 +36,7 @@ const FAQ_SCHEMA = {
       name: `What is Timechain ${VIEW_BRAND_NAME}?`,
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Timechain ${VIEW_BRAND_NAME} draws the whole Bitcoin blockchain as a live, interactive ${VIEW_BRAND_NAME.toLowerCase()} in your browser — every significant wallet a node, every transaction a bond, the full public ledger visible without an account or login. It is free, open source (MIT), and funded only by donations.`,
+        text: `Timechain ${VIEW_BRAND_NAME} draws Bitcoin's largest holders as a fixed map in your browser: every address that has ever received at least 1 BTC becomes a territory — roughly 850,000 wallet empires — sized by the total BTC it has received over its lifetime, with the biggest at the center. It is not the whole ledger: dust and sub-1-BTC addresses are left out, and each territory is a single address, not a clustered wallet. No account or login. It is free, open source (MIT), and funded only by donations.`,
       },
     },
     {
@@ -52,7 +52,7 @@ const FAQ_SCHEMA = {
       name: 'What personal data do you collect?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `None. There is no analytics, no cookies, no trackers, no login, and no account. The only footprint your visit leaves is standard CDN-layer server logs (IP + request path) — the same as loading any static website. Open DevTools and reload: every request targets ${VIEW_DOMAIN} only.`,
+        text: `No analytics, no cookies, no trackers, no login, and no account. The only footprint your visit leaves is standard CDN-layer server logs (IP + request path), the same as loading any static website. Open DevTools and reload: requests go to just ${VIEW_DOMAIN} (the page) and data.timechaingraph.com — the operator's own R2 bucket serving the data bundle and DuckDB engine, shared across the Timechain sites, not a third party.`,
       },
     },
     {
@@ -76,7 +76,7 @@ const FAQ_SCHEMA = {
       name: 'How many Bitcoin wallets exist?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'There is no single answer. Hundreds of millions of addresses have ever received bitcoin, but the vast majority are dust or long-spent. The most economically significant cohort — wallets that received at least 1 BTC or participated in 100+ transactions — numbers in the low millions. That is the "Max" tier this tool renders.',
+        text: `There is no single answer. Hundreds of millions of addresses have ever received bitcoin, but the vast majority hold dust, were used once, or are long spent. Timechain ${VIEW_BRAND_NAME} focuses on the economically significant end: the roughly 850,000 addresses that have each received at least 1 BTC over their lifetime. An address is not the same as a wallet — one owner can control many addresses, and clustering them into true wallets is a later-roadmap feature — so each territory is a single address, not a de-duplicated owner.`,
       },
     },
   ],
@@ -110,11 +110,14 @@ export default function FaqPage() {
               What is Timechain {VIEW_BRAND_NAME}?
             </dt>
             <dd className="mt-2 text-[color:var(--color-text-secondary)]">
-              Timechain {VIEW_BRAND_NAME} draws the whole Bitcoin blockchain as a
-              live, interactive {VIEW_BRAND_NAME.toLowerCase()} in your browser —
-              every significant wallet a node, every transaction a bond, the full
-              public ledger visible without an account or login. It is free, open
-              source, and funded only by donations.
+              Timechain {VIEW_BRAND_NAME} draws Bitcoin&apos;s largest holders as a
+              fixed map in your browser: every address that has ever received at
+              least 1 BTC becomes a territory — roughly 850,000 wallet empires —
+              sized by the total BTC it has received over its lifetime, with the
+              biggest at the center. It is not the whole ledger: dust and sub-1-BTC
+              addresses are left out, and each territory is a single address, not a
+              clustered wallet. No account or login. It is free, open source, and
+              funded only by donations.
             </dd>
           </div>
 
@@ -170,10 +173,10 @@ export default function FaqPage() {
               How current is the data?
             </dt>
             <dd className="mt-2 text-[color:var(--color-text-secondary)]">
-              The dataset is a periodic snapshot rebuilt by the operator after each
-              epoch — roughly weekly for early releases, more frequently as the pipeline
-              matures. It shows the historical structure of the chain, not real-time
-              mempool activity.
+              The dataset is a periodic snapshot the operator rebuilds and
+              republishes — not a live feed, and on no fixed schedule. It shows the
+              historical structure of the chain up to the block height it was built
+              at, not real-time mempool activity.
             </dd>
           </div>
         </dl>
@@ -227,11 +230,16 @@ export default function FaqPage() {
               </kbd>
               ), go to the{' '}
               <strong className="text-[color:var(--color-text-primary)]">Network</strong> tab,
-              and reload. Every request should target{' '}
+              and reload. Every request should target either{' '}
               <code className="text-sm text-[color:var(--color-gold)]">{VIEW_DOMAIN}</code>{' '}
-              only. A CI gate on every build scans the compiled output for forbidden
-              third-party domains and fails the build if any leak in — it is an enforced
-              architecture invariant, not a policy statement. Read more under{' '}
+              (the page and its scripts) or{' '}
+              <code className="text-sm text-[color:var(--color-gold)]">data.timechaingraph.com</code>{' '}
+              — the operator&apos;s own R2 bucket serving the large data bundle and the
+              DuckDB engine (too big for the page host&apos;s 25&nbsp;MB per-file cap),
+              shared across the Timechain sites, not a third party. A CI gate on every
+              build scans the compiled output for forbidden third-party domains and
+              fails the build if any leak in — it is an enforced architecture invariant,
+              not a policy statement. Read more under{' '}
               <Link
                 href="/docs#verify"
                 className="text-[color:var(--color-gold)] underline-offset-4 hover:underline"
@@ -247,9 +255,14 @@ export default function FaqPage() {
               Is Timechain {VIEW_BRAND_NAME} GDPR compliant?
             </dt>
             <dd className="mt-2 text-[color:var(--color-text-secondary)]">
-              Because no personal data is collected, stored, or processed, the GDPR&apos;s
-              consent, data-subject rights, and controller-registration obligations do not
-              arise — there is nothing to consent to and no data to delete or export.
+              We collect no personal data ourselves — no analytics, no cookies, no
+              account, no form. The one exception is the CDN edge log (your IP and the
+              path you requested), which an IP-address reading of the GDPR does treat as
+              personal data. We process it only as a technical necessity of serving the
+              bytes (a legitimate interest), keep it no longer than the CDN retains
+              standard access logs, set no cookies, and never link it to an identity or
+              use it to profile you. Beyond that there is nothing to consent to, and no
+              stored profile to delete or export.
               {SUPPORT_EMAIL && (
                 <>
                   {' '}
@@ -324,10 +337,13 @@ export default function FaqPage() {
             </dt>
             <dd className="mt-2 text-[color:var(--color-text-secondary)]">
               There is no single authoritative count. Hundreds of millions of addresses
-              have ever received bitcoin, but most are dust, one-time-use, or long spent.
-              The most economically significant cohort — wallets that received at least
-              1 BTC or made 100+ transactions — numbers in the low millions. That is
-              the threshold for the Max tier this tool renders.
+              have ever received bitcoin, but most hold dust, were used once, or are
+              long spent. Timechain {VIEW_BRAND_NAME} focuses on the economically
+              significant end: the roughly 850,000 addresses that have each received at
+              least 1 BTC over their lifetime. An address is not the same as a wallet —
+              one owner can control many addresses, and clustering them into true
+              wallets is a later-roadmap feature — so each territory here is a single
+              address, not a de-duplicated owner.
             </dd>
           </div>
 

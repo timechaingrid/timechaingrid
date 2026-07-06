@@ -285,7 +285,7 @@ export function CoinGridView() {
       ref={containerRef}
       className="relative h-full w-full cursor-grab active:cursor-grabbing"
       style={{ touchAction: 'none' }}
-      aria-label="Timechain Grid — every wallet that ever held ≥1 BTC as an empire, sized by holdings, whales at the center. Drag to pan, pinch to zoom."
+      aria-label="Timechain Grid — every address that ever received ≥1 BTC as an empire, sized by lifetime BTC received, whales at the center. Drag to pan, pinch to zoom."
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 z-[1]" style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(4,4,8,0.7) 100%)' }} />
 

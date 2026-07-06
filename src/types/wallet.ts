@@ -5,8 +5,8 @@ import type { LatticeNode } from '@/types/lattice';
  *
  *   satoshi      → brass-gold, special-cased; reserved for the genesis miner
  *   miner        → red;        every coinbase recipient ever
- *   whale        → gold;       > 1,000 BTC ever held
- *   significant  → cyan;       > 1 BTC ever held OR > 100 lifetime txs
+ *   whale        → gold;       > 1,000 BTC ever received (lifetime inflow)
+ *   significant  → cyan;       > 1 BTC ever received OR > 100 lifetime txs
  *   dust         → grey;       below the significance threshold
  */
 export type WalletRole = 'satoshi' | 'miner' | 'whale' | 'significant' | 'dust';

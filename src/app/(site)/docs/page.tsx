@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { UnderDevelopment } from '@/components/UnderDevelopment';
 import { VIEW_BRAND_NAME, VIEW_DOMAIN, GITHUB_URL } from '@/lib/site-config';
 
-const DOCS_DESCRIPTION = `How Timechain ${VIEW_BRAND_NAME} works: a self-hosted Bitcoin pipeline (bitcoind → DuckDB → Parquet → in-browser DuckDB-Wasm), the honest same-origin residual, and how to verify the privacy claim yourself in your browser.`;
+const DOCS_DESCRIPTION = `How Timechain ${VIEW_BRAND_NAME} works: a self-hosted Bitcoin pipeline (bitcoind → DuckDB → Parquet → in-browser DuckDB-Wasm), the honest residual it still leaves, and how to verify the privacy claim yourself in your browser.`;
 
 export const metadata: Metadata = {
   title: 'Documentation',
@@ -47,7 +47,7 @@ const PIPELINE: Array<{ plane: string; title: string; body: string }> = [
   {
     plane: 'Serving plane',
     title: 'Serve from our own origin',
-    body: `The bundle is published to a storage bucket we control (Cloudflare R2) and served from ${VIEW_DOMAIN}. No library, font, or asset is loaded from anyone else.`,
+    body: `The bundle is published to a storage bucket we control — Cloudflare R2, served from data.timechaingraph.com — while the page and smaller assets come from ${VIEW_DOMAIN}. Both are our own infrastructure; no library, font, or asset is loaded from anyone else.`,
   },
   {
     plane: 'Serving plane · your browser',
@@ -70,8 +70,10 @@ export default function DocsPage() {
 
       <div className="mt-10 max-w-2xl space-y-6 text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
         <p>
-          Timechain {VIEW_BRAND_NAME} draws the whole Bitcoin chain in your
-          browser — and it does so without telling anyone you looked. That
+          Timechain {VIEW_BRAND_NAME} draws Bitcoin’s largest holders — every
+          address that ever received at least 1 BTC, roughly 850,000 wallet
+          empires — as a fixed map in your browser, and it does so without
+          telling anyone you looked. That
           isn’t a promise printed on a page; it’s a property of how the thing
           is built, and you can check it yourself in under a minute (
           <a
@@ -127,11 +129,14 @@ export default function DocsPage() {
         <div className="mt-4 max-w-2xl space-y-4 text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
           <p>
             <strong className="text-[color:var(--color-text-primary)]">
-              To our origin ({VIEW_DOMAIN}):
+              To our own origins:
             </strong>{' '}
-            ordinary requests for static files — the page, its scripts and
-            styles, system fonts, the Parquet data bundle, and the DuckDB-Wasm
-            engine. The same footprint as loading any static website.
+            ordinary requests for static files — the page, its scripts, styles,
+            and system fonts from {VIEW_DOMAIN}, plus the large Parquet data
+            bundle and the DuckDB-Wasm engine from data.timechaingraph.com (the
+            operator&apos;s own Cloudflare R2 bucket, shared across the Timechain
+            sites, since those files exceed the 25&nbsp;MB per-file cap on the
+            page host). The same footprint as loading any static website.
           </p>
           <p>
             <strong className="text-[color:var(--color-text-primary)]">
@@ -154,8 +159,10 @@ export default function DocsPage() {
             <strong className="text-[color:var(--color-text-primary)]">
               Open DevTools → Network
             </strong>{' '}
-            and reload. Every request targets {VIEW_DOMAIN}. If you ever see a
-            third-party domain, that is a bug — please report it.
+            and reload. Every request targets either {VIEW_DOMAIN} or
+            data.timechaingraph.com — the operator&apos;s own R2 bucket for the data
+            bundle and query engine, shared across the Timechain sites. If you ever
+            see any other domain, that is a bug — please report it.
           </li>
           <li>
             <strong className="text-[color:var(--color-text-primary)]">
@@ -173,8 +180,9 @@ export default function DocsPage() {
         <h2 className="text-display text-2xl font-semibold">One honest caveat</h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
           A network observer (your ISP, a state-level watcher) can still see
-          that you connected to {VIEW_DOMAIN} at all — that is true of every
-          website. If that matters to you, reach the site over Tor; a dedicated
+          that you connected to {VIEW_DOMAIN} — and to data.timechaingraph.com,
+          where the data bundle lives — at all; that is true of every website.
+          If that matters to you, reach the site over Tor; a dedicated
           onion service is on the roadmap. What we can promise is that nothing
           on our side ever links a visit to a person.
         </p>

@@ -5,7 +5,7 @@ import type { WalletData, WalletRole } from '@/types/wallet';
  *
  *   1 satoshi    (brass-gold; genesis miner)
  *   5 miners     (red; coinbase recipients)
- *  10 whales     (gold; > 1,000 BTC ever held)
+ *  10 whales     (gold; > 1,000 BTC ever received)
  *  25 significant (cyan; mid-tier holders)
  *   9 dust       (grey; just-over-threshold)
  *

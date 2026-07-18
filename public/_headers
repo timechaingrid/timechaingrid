@@ -1,0 +1,17 @@
+# Cloudflare Pages headers (https://developers.cloudflare.com/pages/configuration/headers/)
+#
+# Repeat/shared-link visits shouldn't refetch the runtime assets every time (the
+# default is max-age=0). Ported from the Graph sibling. NOTE: the v0.2.0 empire
+# parquet (~28MB) + bonds (~82MB) are served from R2 (data.timechaingraph.com),
+# which these Pages headers CANNOT reach — those heavy assets are cached via an
+# R2-side Cache Rule instead. What this file covers is the same-origin subset.
+#
+# DuckDB-Wasm workers are version-pinned (the deploy gate enforces the exact
+# wasm hash), so a week is safe — a duckdb bump changes the deploy.
+/duckdb/*
+  Cache-Control: public, max-age=604800
+# Same-origin v0.1.0 block-chrome parquet + manifest (the v0.2.0 empire bundle is
+# on R2). A day balances instant repeat/shared visits against a periodic refresh;
+# manifest + parquet share the window so a repeat visit never desyncs them.
+/data/*
+  Cache-Control: public, max-age=86400
